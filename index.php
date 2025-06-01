@@ -220,19 +220,51 @@
                 <div class="bg-white rounded-lg shadow-sm border border-gray-200 min-h-[600px]">
                     <!-- Tab Contents -->
                     <div id="greenhouse-content" class="tab-content active p-6">
-                        <?php include 'tabs/greenhouse.php'; ?>
+                        <div class="flex items-center justify-center h-96">
+                            <div class="text-center">
+                                <svg class="animate-spin h-8 w-8 text-thermeleon-500 mx-auto mb-4" fill="none" viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                                <p class="text-gray-600">Loading greenhouse data...</p>
+                            </div>
+                        </div>
                     </div>
                     
                     <div id="presales-content" class="tab-content p-6">
-                        <?php include 'tabs/presales.php'; ?>
+                        <div class="flex items-center justify-center h-96">
+                            <div class="text-center">
+                                <svg class="animate-spin h-8 w-8 text-thermeleon-500 mx-auto mb-4" fill="none" viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                                <p class="text-gray-600">Loading pre-sales tools...</p>
+                            </div>
+                        </div>
                     </div>
                     
                     <div id="manager-content" class="tab-content p-6">
-                        <?php include 'tabs/manager.php'; ?>
+                        <div class="flex items-center justify-center h-96">
+                            <div class="text-center">
+                                <svg class="animate-spin h-8 w-8 text-thermeleon-500 mx-auto mb-4" fill="none" viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                                <p class="text-gray-600">Loading greenhouse manager...</p>
+                            </div>
+                        </div>
                     </div>
                     
                     <div id="platform-content" class="tab-content p-6">
-                        <?php include 'tabs/platform.php'; ?>
+                        <div class="flex items-center justify-center h-96">
+                            <div class="text-center">
+                                <svg class="animate-spin h-8 w-8 text-thermeleon-500 mx-auto mb-4" fill="none" viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                                <p class="text-gray-600">Loading platform manager...</p>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </main>
@@ -401,6 +433,111 @@
         // Initialize global dialog system
         const dialogSystem = new DialogSystem();
         
+        // Tab content cache to avoid reloading
+        const tabContentCache = {};
+        
+        // Tab switching functionality with lazy loading
+        function showTab(tabName) {
+            // Hide all tab contents
+            const tabContents = document.querySelectorAll('.tab-content');
+            tabContents.forEach(content => {
+                content.classList.remove('active');
+            });
+            
+            // Remove active state from all tab buttons
+            const tabButtons = document.querySelectorAll('.tab-btn');
+            tabButtons.forEach(btn => {
+                btn.classList.remove('bg-thermeleon-500', 'text-white');
+                btn.classList.add('text-gray-700', 'hover:bg-gray-100');
+            });
+            
+            // Show selected tab content
+            const selectedContent = document.getElementById(tabName + '-content');
+            if (selectedContent) {
+                selectedContent.classList.add('active');
+                
+                // Load content if not already loaded
+                if (!tabContentCache[tabName]) {
+                    loadTabContent(tabName);
+                }
+            }
+            
+            // Activate selected tab button
+            const selectedButton = document.querySelector(`[data-tab="${tabName}"]`);
+            if (selectedButton) {
+                selectedButton.classList.remove('text-gray-700', 'hover:bg-gray-100');
+                selectedButton.classList.add('bg-thermeleon-500', 'text-white');
+            }
+        }
+        
+        // Function to load tab content via AJAX
+        async function loadTabContent(tabName) {
+            const tabElement = document.getElementById(tabName + '-content');
+            if (!tabElement) return;
+            
+            try {
+                // Show loading spinner (already in place)
+                const response = await fetch(`tabs/${tabName}.php`);
+                if (!response.ok) {
+                    throw new Error(`Failed to load ${tabName} content`);
+                }
+                
+                const content = await response.text();
+                tabElement.innerHTML = content;
+                tabContentCache[tabName] = true;
+                
+                // Execute any scripts that might be in the loaded content
+                const scripts = tabElement.querySelectorAll('script');
+                scripts.forEach(script => {
+                    const newScript = document.createElement('script');
+                    if (script.src) {
+                        newScript.src = script.src;
+                    } else {
+                        newScript.textContent = script.textContent;
+                    }
+                    document.body.appendChild(newScript);
+                });
+                
+                // Trigger any initialization that might be needed for this tab
+                if (tabName === 'greenhouse') {
+                    // Re-initialize greenhouse functionality after content is loaded
+                    setTimeout(() => {
+                        if (typeof initializeGreenhouseTab === 'function') {
+                            initializeGreenhouseTab();
+                        }
+                    }, 100);
+                } else if (tabName === 'manager') {
+                    // Initialize manager tab if needed
+                    setTimeout(() => {
+                        if (typeof initializeManagerTab === 'function') {
+                            initializeManagerTab();
+                        }
+                    }, 100);
+                } else if (tabName === 'platform') {
+                    // Initialize platform tab if needed
+                    setTimeout(() => {
+                        if (typeof initializePlatformTab === 'function') {
+                            initializePlatformTab();
+                        }
+                    }, 100);
+                }
+                
+            } catch (error) {
+                console.error(`Error loading ${tabName} content:`, error);
+                tabElement.innerHTML = `
+                    <div class="flex items-center justify-center h-96">
+                        <div class="text-center">
+                            <svg class="w-16 h-16 mx-auto mb-4 text-red-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
+                            </svg>
+                            <p class="text-lg text-red-600 mb-2">Failed to load content</p>
+                            <p class="text-gray-600">Please try refreshing the page</p>
+                        </div>
+                    </div>
+                `;
+            }
+        }
+
         // Global helper functions for backward compatibility
         function showConfirmDialog(message, onConfirm, title = 'Confirmation') {
             return dialogSystem.showDialog(title, message, onConfirm);
@@ -422,34 +559,11 @@
             dialogSystem.showNotification(title, message, 'warning');
         }
         
-        // Tab switching functionality
-        function showTab(tabName) {
-            // Hide all tab contents
-            const tabContents = document.querySelectorAll('.tab-content');
-            tabContents.forEach(content => {
-                content.classList.remove('active');
-            });
-            
-            // Remove active state from all tab buttons
-            const tabButtons = document.querySelectorAll('.tab-btn');
-            tabButtons.forEach(btn => {
-                btn.classList.remove('bg-thermeleon-500', 'text-white');
-                btn.classList.add('text-gray-700', 'hover:bg-gray-100');
-            });
-            
-            // Show selected tab content
-            const selectedContent = document.getElementById(tabName + '-content');
-            if (selectedContent) {
-                selectedContent.classList.add('active');
-            }
-            
-            // Activate selected tab button
-            const selectedButton = document.querySelector(`[data-tab="${tabName}"]`);
-            if (selectedButton) {
-                selectedButton.classList.remove('text-gray-700', 'hover:bg-gray-100');
-                selectedButton.classList.add('bg-thermeleon-500', 'text-white');
-            }
-        }
+        // Initialize the default tab on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            // Load the greenhouse tab by default
+            loadTabContent('greenhouse');
+        });
     </script>
     
     <!-- Import main JavaScript file -->

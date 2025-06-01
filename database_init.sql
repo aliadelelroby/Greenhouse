@@ -475,20 +475,57 @@ INSERT INTO `sensor_model` (`Id_sensor_type`, `Brand`, `Model`) VALUES
 (4, 'LightMeter', 'LM-4000'),
 (5, 'CO2Monitor', 'CM-Pro-200');
 
--- Insert sample sensors
-INSERT INTO `sensor` (`Id_sensor_model`, `Id_greenhouse`, `Name_sensor`, `Description`, `Last_update`, `Enabled`) VALUES
-(1, 1, 'North-A1-Temp-01', 'Temperature sensor in north section', '2024-12-01 15:30:00', 1),
-(1, 1, 'North-A1-Temp-02', 'Temperature sensor in center section', '2024-12-01 15:30:00', 1),
-(2, 1, 'North-A1-Temp-03', 'Backup temperature sensor', '2024-12-01 15:30:00', 1),
-(3, 1, 'North-A1-Humid-01', 'Humidity sensor main zone', '2024-12-01 15:30:00', 1),
-(1, 2, 'South-B2-Temp-01', 'Temperature sensor zone 1', '2024-12-01 15:30:00', 1),
-(1, 2, 'South-B2-Temp-02', 'Temperature sensor zone 2', '2024-12-01 15:30:00', 1),
-(3, 2, 'South-B2-Humid-01', 'Humidity monitor central', '2024-12-01 15:30:00', 1),
-(1, 3, 'Eco-GH1-Temp-01', 'Main temperature monitor', '2024-12-01 15:30:00', 1),
-(4, 3, 'Eco-GH1-Soil-01', 'Soil moisture detector', '2024-12-01 15:30:00', 1),
-(1, 4, 'Smart-C-Temp-01', 'Primary temperature sensor', '2024-12-01 15:30:00', 1),
-(1, 4, 'Smart-C-Temp-02', 'Secondary temperature sensor', '2024-12-01 15:30:00', 1),
-(5, 4, 'Smart-C-Light-01', 'Light intensity meter', '2024-12-01 15:30:00', 1);
+-- Insert 200 sensors for each greenhouse (800 total sensors)
+INSERT INTO `sensor` (`Id_sensor_model`, `Id_greenhouse`, `Name_sensor`, `Description`, `Last_update`, `Enabled`)
+SELECT 
+    -- Rotate through sensor models 1-6 for variety
+    ((seq - 1) % 6) + 1 as sensor_model_id,
+    gh.Id_greenhouse,
+    CONCAT(
+        CASE gh.Id_greenhouse
+            WHEN 1 THEN 'North-A1'
+            WHEN 2 THEN 'South-B2'
+            WHEN 3 THEN 'Eco-GH1'
+            WHEN 4 THEN 'Smart-C'
+        END,
+        '-', 
+        CASE ((seq - 1) % 5)
+            WHEN 0 THEN 'Temp'
+            WHEN 1 THEN 'Humid'
+            WHEN 2 THEN 'Soil'
+            WHEN 3 THEN 'Light'
+            WHEN 4 THEN 'CO2'
+        END,
+        '-',
+        LPAD(seq, 3, '0')
+    ) as sensor_name,
+    CONCAT(
+        CASE ((seq - 1) % 5)
+            WHEN 0 THEN 'Temperature sensor'
+            WHEN 1 THEN 'Humidity sensor'
+            WHEN 2 THEN 'Soil moisture sensor'
+            WHEN 3 THEN 'Light intensity sensor'
+            WHEN 4 THEN 'CO2 concentration sensor'
+        END,
+        ' - Zone ', 
+        CEIL(seq / 10),
+        ' Position ', 
+        ((seq - 1) % 10) + 1
+    ) as description,
+    '2024-12-01 15:30:00' as last_update,
+    1 as enabled
+FROM greenhouse gh
+CROSS JOIN (
+    SELECT a.N + b.N * 10 + c.N * 100 + 1 as seq
+    FROM 
+        (SELECT 0 as N UNION SELECT 1 UNION SELECT 2 UNION SELECT 3 UNION SELECT 4 UNION SELECT 5 UNION SELECT 6 UNION SELECT 7 UNION SELECT 8 UNION SELECT 9) a
+    CROSS JOIN 
+        (SELECT 0 as N UNION SELECT 1 UNION SELECT 2 UNION SELECT 3 UNION SELECT 4 UNION SELECT 5 UNION SELECT 6 UNION SELECT 7 UNION SELECT 8 UNION SELECT 9) b
+    CROSS JOIN 
+        (SELECT 0 as N UNION SELECT 1) c
+    WHERE a.N + b.N * 10 + c.N * 100 + 1 <= 200
+) numbers
+ORDER BY gh.Id_greenhouse, seq;
 
 -- Insert sample user-greenhouse associations
 INSERT INTO `user_greenhouse` (`Id_user`, `Id_greenhouse`, `Enabled`) VALUES

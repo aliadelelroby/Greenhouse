@@ -2,14 +2,14 @@
 let temperatureChart = null;
 let selectedSensors = new Set();
 
-// DOM elements
-const menuSelect = document.getElementById("menuSelect");
-const startDateInput = document.getElementById("startDate");
-const endDateInput = document.getElementById("endDate");
-const sensorDropdownMenu = document.getElementById("sensorDropdownMenu");
-const selectedPillsContainer = document.getElementById("selectedPills");
-const chartContainer = document.getElementById("chartContainer");
-const chartPlaceholder = document.getElementById("chartPlaceholder");
+// DOM elements - will be set when content is loaded
+let menuSelect = null;
+let startDateInput = null;
+let endDateInput = null;
+let sensorDropdownMenu = null;
+let selectedPillsContainer = null;
+let chartContainer = null;
+let chartPlaceholder = null;
 
 // API endpoints - using real API files
 const API_ENDPOINTS = {
@@ -18,11 +18,88 @@ const API_ENDPOINTS = {
   EXPORT: "api/export.php",
 };
 
-// Initialize when DOM is loaded
-document.addEventListener("DOMContentLoaded", function () {
+// Function to initialize greenhouse tab when content is loaded
+function initializeGreenhouseTab() {
+  // Get DOM elements
+  menuSelect = document.getElementById("menuSelect");
+  startDateInput = document.getElementById("startDate");
+  endDateInput = document.getElementById("endDate");
+  sensorDropdownMenu = document.getElementById("sensorDropdownMenu");
+  selectedPillsContainer = document.getElementById("selectedPills");
+  chartContainer = document.getElementById("chartContainer");
+  chartPlaceholder = document.getElementById("chartPlaceholder");
+
+  // Initialize chart display state properly
+  initializeChartDisplay();
+
+  // Initialize dropdown functionality
+  initializeSensorDropdown();
+
+  // Initialize export buttons
+  initializeExportButtons();
+
+  // Initialize functionality
   initializeEventListeners();
   setDefaultDates();
-  loadSensors(menuSelect.value);
+  if (menuSelect && menuSelect.value) {
+    loadSensors(menuSelect.value);
+  }
+}
+
+// Initialize chart display state to ensure consistent height
+function initializeChartDisplay() {
+  if (chartContainer && chartPlaceholder) {
+    // Ensure chart container has proper height from CSS
+    chartContainer.style.display = "none";
+    chartPlaceholder.style.display = "flex";
+
+    // Make sure the chart container maintains its CSS height
+    chartContainer.style.height = ""; // Reset any inline height
+    chartContainer.classList.add("chart-container"); // Ensure CSS class is applied
+  }
+}
+
+// Initialize sensor dropdown toggle functionality
+function initializeSensorDropdown() {
+  const dropdownBtn = document.getElementById("sensorDropdownBtn");
+  const dropdownMenu = document.getElementById("sensorDropdownMenu");
+
+  if (dropdownBtn && dropdownMenu) {
+    // Remove any existing event listeners
+    dropdownBtn.removeEventListener("click", toggleSensorDropdown);
+
+    // Add click event listener to toggle dropdown
+    dropdownBtn.addEventListener("click", toggleSensorDropdown);
+
+    // Close dropdown when clicking outside
+    document.addEventListener("click", function (event) {
+      if (
+        !dropdownBtn.contains(event.target) &&
+        !dropdownMenu.contains(event.target)
+      ) {
+        dropdownMenu.classList.add("hidden");
+      }
+    });
+  }
+}
+
+// Toggle sensor dropdown visibility
+function toggleSensorDropdown(event) {
+  event.preventDefault();
+  event.stopPropagation();
+
+  const dropdownMenu = document.getElementById("sensorDropdownMenu");
+  if (dropdownMenu) {
+    dropdownMenu.classList.toggle("hidden");
+  }
+}
+
+// Initialize when DOM is loaded (for backward compatibility)
+document.addEventListener("DOMContentLoaded", function () {
+  // Only initialize if elements exist (not lazy loaded)
+  if (document.getElementById("menuSelect")) {
+    initializeGreenhouseTab();
+  }
 });
 
 function initializeEventListeners() {
@@ -266,7 +343,11 @@ async function updateChart() {
 }
 
 function hideChart() {
-  if (chartContainer) chartContainer.style.display = "none";
+  if (chartContainer) {
+    chartContainer.style.display = "none";
+    // Reset height to ensure CSS takes precedence
+    chartContainer.style.height = "";
+  }
   if (chartPlaceholder) chartPlaceholder.style.display = "flex";
 
   if (temperatureChart) {
@@ -276,7 +357,13 @@ function hideChart() {
 }
 
 function showChart() {
-  if (chartContainer) chartContainer.style.display = "block";
+  if (chartContainer) {
+    chartContainer.style.display = "block";
+    // Reset height to ensure CSS takes precedence
+    chartContainer.style.height = "";
+    // Ensure CSS class is maintained
+    chartContainer.classList.add("chart-container");
+  }
   if (chartPlaceholder) chartPlaceholder.style.display = "none";
 }
 
@@ -457,6 +544,117 @@ function updateExportButtons() {
   }
 }
 
+// Export functionality
+function exportData(type) {
+  const greenhouseId = menuSelect ? menuSelect.value : "";
+  const sensors = Array.from(selectedSensors);
+  const startDate = startDateInput ? startDateInput.value : "";
+  const endDate = endDateInput ? endDateInput.value : "";
+
+  if (!greenhouseId || sensors.length === 0) {
+    // Use the global notification system instead of the modal
+    if (typeof showErrorNotification === "function") {
+      showErrorNotification(
+        "Please select a greenhouse and at least one sensor."
+      );
+    } else {
+      alert("Please select a greenhouse and at least one sensor.");
+    }
+    return;
+  }
+
+  const params = new URLSearchParams();
+  params.append("greenhouse_id", greenhouseId);
+  params.append("sensors", sensors.join(","));
+  params.append("type", type);
+  if (startDate) params.append("start_date", startDate);
+  if (endDate) params.append("end_date", endDate);
+
+  // Use real API endpoint
+  const url = `api/export.php?${params.toString()}`;
+  window.open(url, "_blank");
+}
+
+// Initialize export button event listeners
+function initializeExportButtons() {
+  const exportQuick = document.getElementById("exportQuick");
+  const exportDetailed = document.getElementById("exportDetailed");
+  const refreshChart = document.getElementById("refreshChart");
+
+  if (exportQuick) {
+    exportQuick.removeEventListener("click", handleExportQuick); // Remove any existing listeners
+    exportQuick.addEventListener("click", handleExportQuick);
+  }
+
+  if (exportDetailed) {
+    exportDetailed.removeEventListener("click", handleExportDetailed);
+    exportDetailed.addEventListener("click", handleExportDetailed);
+  }
+
+  if (refreshChart) {
+    refreshChart.removeEventListener("click", updateChart);
+    refreshChart.addEventListener("click", updateChart);
+  }
+}
+
+// Event handlers for export buttons
+function handleExportQuick(event) {
+  if (!event.target.disabled) {
+    exportData("quick");
+  }
+}
+
+function handleExportDetailed(event) {
+  if (!event.target.disabled) {
+    exportData("detailed");
+  }
+}
+
+// Platform tab initialization
+function initializePlatformTab() {
+  // Wait for the platform content to be fully loaded
+  const checkAndLoad = (attempts = 0) => {
+    const tbody = document.getElementById("entityTableBody");
+
+    if (!tbody && attempts < 10) {
+      // If elements aren't ready yet, wait a bit more
+      setTimeout(() => checkAndLoad(attempts + 1), 100);
+      return;
+    }
+
+    // Try to call the loadSystemData function
+    if (typeof loadSystemData === "function") {
+      loadSystemData();
+    } else if (typeof renderRealData === "function") {
+      renderRealData();
+    } else {
+      // If neither function exists, try to manually trigger a data refresh
+      setTimeout(() => {
+        if (typeof refreshData === "function") {
+          refreshData();
+        } else {
+          // As a last resort, simulate a refresh button click
+          const refreshBtn = document.querySelector(
+            'button[onclick="refreshData()"]'
+          );
+          if (refreshBtn) {
+            refreshBtn.click();
+          }
+        }
+      }, 200);
+    }
+  };
+
+  checkAndLoad();
+}
+
+// Manager tab initialization (placeholder for future use)
+function initializeManagerTab() {
+  // Add manager-specific initialization here if needed
+  console.log("Manager tab initialized");
+}
+
 // Global functions for HTML onclick events
 window.removeSensor = removeSensor;
 window.updateChart = updateChart;
+window.exportData = exportData;
