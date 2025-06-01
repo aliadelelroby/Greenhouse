@@ -295,7 +295,7 @@
 
     <!-- Global Notification System -->
     <div id="globalNotification" class="fixed top-4 right-4 hidden z-[70]">
-        <div class="bg-white rounded-lg shadow-lg border border-gray-200 max-w-sm w-full">
+        <div class="bg-white rounded-lg shadow-lg border border-gray-200 min-w-80 max-w-md w-auto">
             <div class="p-4">
                 <div class="flex items-start">
                     <div class="flex-shrink-0">
@@ -303,9 +303,9 @@
                             <!-- Icon will be inserted here -->
                         </div>
                     </div>
-                    <div class="ml-3 w-0 flex-1">
-                        <p class="text-sm font-medium text-gray-900" id="notificationTitle">Notification</p>
-                        <p class="mt-1 text-sm text-gray-500" id="notificationMessage">Message content</p>
+                    <div class="ml-3 flex-1 min-w-0">
+                        <p class="text-sm font-medium text-gray-900 break-words" id="notificationTitle">Notification</p>
+                        <p class="mt-1 text-sm text-gray-500 break-words" id="notificationMessage">Message content</p>
                     </div>
                     <div class="ml-4 flex-shrink-0 flex">
                         <button id="closeNotification" class="bg-white rounded-md inline-flex text-gray-400 hover:text-gray-500 focus:outline-none">

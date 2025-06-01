@@ -366,33 +366,107 @@ try {
 </div>
 
 <script>
-// Platform manager functionality
-let entities = [];
+class PlatformManager {
+    constructor() {
+        this.entities = [];
+        this.cache = new Map();
+        this.pendingRequests = new Set();
+        this.isLoading = false;
+        this.lastLoadTime = 0;
+        this.cacheTimeout = 5 * 60 * 1000; // 5 minutes
+        this.companies = [];
+        this.positions = [];
+        
+        this.initializeFilters();
+        this.setupEventListeners();
+    }
 
-// Load real data from database
-async function loadSystemData() {
-    try {
-        // Load all system entities
-        const [sensorsResponse, greenhousesResponse, usersResponse] = await Promise.all([
-            fetch('api/sensors.php'),
-            fetch('api/sensors.php?greenhouse_list=1'),
-            fetch('api/users.php?type=all')
-        ]);
+    /**
+     * Prevents duplicate requests by checking if a request is already pending
+     */
+    async makeRequest(url, options = {}) {
+        const cacheKey = `${url}_${JSON.stringify(options)}`;
         
-        const sensors = await sensorsResponse.json();
-        const greenhouses = await greenhousesResponse.json();
-        const usersResponse_json = await usersResponse.json();
+        // Check if request is already pending
+        if (this.pendingRequests.has(cacheKey)) {
+            return null;
+        }
         
-        // Extract data from API response
-        const usersData = usersResponse_json.success ? usersResponse_json.data : {};
+        // Check cache first
+        if (this.cache.has(cacheKey)) {
+            const cached = this.cache.get(cacheKey);
+            if (Date.now() - cached.timestamp < this.cacheTimeout) {
+                return cached.data;
+            }
+            this.cache.delete(cacheKey);
+        }
         
-        // Combine all entities
-        entities = [];
+        this.pendingRequests.add(cacheKey);
         
-        // Add greenhouses
-        if (Array.isArray(greenhouses)) {
-            greenhouses.forEach(greenhouse => {
-                entities.push({
+        try {
+            const response = await fetch(url, options);
+            const data = await response.json();
+            
+            // Cache the result
+            this.cache.set(cacheKey, {
+                data,
+                timestamp: Date.now()
+            });
+            
+            return data;
+        } catch (error) {
+            console.error(`Request failed for ${url}:`, error);
+            throw error;
+        } finally {
+            this.pendingRequests.delete(cacheKey);
+        }
+    }
+
+    /**
+     * Lazy load data only when needed
+     */
+    async loadSystemData(force = false) {
+        // Prevent duplicate loads unless forced
+        if (this.isLoading || (!force && Date.now() - this.lastLoadTime < 10000)) {
+            return;
+        }
+
+        this.isLoading = true;
+        this.showLoadingState();
+
+        try {
+            // Load data in batches for better performance
+            // await this.loadCoreData();
+            await this.loadExtendedData();
+            
+            this.renderEntityTable();
+            this.lastLoadTime = Date.now();
+            
+        } catch (error) {
+            console.error('Error loading system data:', error);
+            this.showErrorState('Error loading system data');
+        } finally {
+            this.isLoading = false;
+        }
+    }
+
+    /**
+     * Load core data first (most important)
+     */
+    async loadCoreData() {
+        this.entities = [];
+        
+        try {
+            // Load greenhouses and sensors in parallel
+            const [sensorsData, greenhousesData] = await Promise.all([
+                this.makeRequest('api/sensors.php'),
+                this.makeRequest('api/sensors.php?greenhouse_list=1')
+            ]);
+        
+            // Process greenhouses
+            if (Array.isArray(greenhousesData)) {
+                greenhousesData.forEach(greenhouse => {
+                    this.entities.push({
                     type: 'greenhouse',
                     id: greenhouse.id || greenhouse.Id_greenhouse,
                     name: greenhouse.name || greenhouse.Name_greenhouse,
@@ -403,10 +477,10 @@ async function loadSystemData() {
             });
         }
         
-        // Add sensors  
-        if (Array.isArray(sensors) && sensors.length > 0) {
-            sensors.forEach(sensor => {
-                entities.push({
+            // Process sensors
+            if (Array.isArray(sensorsData) && sensorsData.length > 0) {
+                sensorsData.forEach(sensor => {
+                    this.entities.push({
                     type: 'sensor',
                     id: sensor.id || sensor.Id_sensor,
                     name: sensor.name || sensor.Name_sensor,
@@ -416,11 +490,30 @@ async function loadSystemData() {
                 });
             });
         }
+
+            // Render partial data immediately
+            this.renderEntityTable();
+            
+        } catch (error) {
+            console.error('Error loading core data:', error);
+        }
+    }
+
+    /**
+     * Load extended data (users, companies, etc.) after core data
+     */
+    async loadExtendedData() {
+        try {
+            // Load users data
+            const usersResponse = await this.makeRequest('api/users.php?type=all');
+            
+            if (usersResponse && usersResponse.success) {
+                const usersData = usersResponse.data;
         
         // Add users
-        if (usersData && usersData.users && Array.isArray(usersData.users)) {
+                if (usersData.users && Array.isArray(usersData.users)) {
             usersData.users.forEach(user => {
-                entities.push({
+                        this.entities.push({
                     type: 'user',
                     id: user.id_user,
                     name: user.name_user,
@@ -432,9 +525,9 @@ async function loadSystemData() {
         }
         
         // Add companies
-        if (usersData && usersData.companies && Array.isArray(usersData.companies)) {
+                if (usersData.companies && Array.isArray(usersData.companies)) {
             usersData.companies.forEach(company => {
-                entities.push({
+                        this.entities.push({
                     type: 'company',
                     id: company.id_company,
                     name: company.name_company,
@@ -446,9 +539,9 @@ async function loadSystemData() {
         }
         
         // Add positions
-        if (usersData && usersData.positions && Array.isArray(usersData.positions)) {
+                if (usersData.positions && Array.isArray(usersData.positions)) {
             usersData.positions.forEach(position => {
-                entities.push({
+                        this.entities.push({
                     type: 'position',
                     id: position.id_position,
                     name: position.name_position,
@@ -458,15 +551,23 @@ async function loadSystemData() {
                 });
             });
         }
+            }
         
-        // Load recent data records
+        } catch (error) {
+            console.error('Error loading extended data:', error);
+        }
+    }
+
+    /**
+     * Lazy load data records separately
+     */
+    async loadDataRecords() {
         try {
-            const dataResponse = await fetch('api/data.php?sensors=all&limit=10');
-            const dataRecords = await dataResponse.json();
+            const dataRecords = await this.makeRequest('api/data.php?sensors=all&limit=10');
             
             if (Array.isArray(dataRecords)) {
                 dataRecords.forEach((record, index) => {
-                    entities.push({
+                    this.entities.push({
                         type: 'data',
                         id: `data_${index}`,
                         name: `Data Record ${record.id || index + 1}`,
@@ -475,27 +576,54 @@ async function loadSystemData() {
                         lastUpdated: record.timestamp || record.Date_data || new Date().toISOString()
                     });
                 });
+                
+                // Re-render with data records
+                this.renderEntityTable();
             }
         } catch (error) {
             console.log('Could not load data records:', error);
         }
+        }
         
-        renderEntityTable();
-        console.log('System data loaded successfully:', entities.length, 'entities');
-    } catch (error) {
-        console.error('Error loading system data:', error);
+    showLoadingState() {
         const tbody = document.getElementById('entityTableBody');
         if (tbody) {
-            tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-4 text-center text-red-500">Error loading system data</td></tr>';
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="6" class="px-6 py-4 text-center text-gray-500">
+                        <div class="flex flex-col items-center">
+                            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-thermeleon-500 mb-2"></div>
+                            Loading system data...
+                        </div>
+                    </td>
+                </tr>
+            `;
         }
     }
-}
 
-function renderEntityTable() {
+    showErrorState(message) {
+        const tbody = document.getElementById('entityTableBody');
+        if (tbody) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="6" class="px-6 py-4 text-center text-red-500">
+                        <div class="flex flex-col items-center">
+                            <svg class="w-8 h-8 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L5.082 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
+                            </svg>
+                            ${message}
+                        </div>
+                    </td>
+                </tr>
+            `;
+        }
+    }
+
+    renderEntityTable() {
     const tbody = document.getElementById('entityTableBody');
     if (!tbody) return;
     
-    if (entities.length === 0) {
+        if (this.entities.length === 0) {
         tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-4 text-center text-gray-500">No data found</td></tr>';
         return;
     }
@@ -504,7 +632,7 @@ function renderEntityTable() {
     const filterType = document.getElementById('filterType')?.value || '';
     const searchTerm = document.getElementById('searchInput')?.value.toLowerCase() || '';
     
-    let filteredEntities = entities;
+        let filteredEntities = this.entities;
     
     if (filterType) {
         filteredEntities = filteredEntities.filter(entity => entity.type === filterType);
@@ -521,7 +649,7 @@ function renderEntityTable() {
     tbody.innerHTML = filteredEntities.map(entity => `
         <tr class="hover:bg-gray-50">
             <td class="px-6 py-4 whitespace-nowrap">
-                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getTypeColor(entity.type)}">
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${this.getTypeColor(entity.type)}">
                     ${entity.type.charAt(0).toUpperCase() + entity.type.slice(1)}
                 </span>
             </td>
@@ -532,47 +660,47 @@ function renderEntityTable() {
                 ${entity.details}
             </td>
             <td class="px-6 py-4 whitespace-nowrap">
-                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(entity.status)}">
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${this.getStatusColor(entity.status)}">
                     ${entity.status}
                 </span>
             </td>
             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                ${formatDate(entity.lastUpdated)}
+                    ${this.formatDate(entity.lastUpdated)}
             </td>
             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                <button onclick="viewEntity('${entity.type}', '${entity.id}')" class="text-thermeleon-600 hover:text-thermeleon-900 mr-3">View</button>
+                    <button onclick="platformManager.viewEntity('${entity.type}', '${entity.id}')" class="text-thermeleon-600 hover:text-thermeleon-900 mr-3">View</button>
                 ${['user', 'company', 'position'].includes(entity.type) ? 
-                    `<button onclick="toggleEntityStatus('${entity.type}', '${entity.id}', '${entity.status}')" class="text-blue-600 hover:text-blue-900 mr-3">${entity.status === 'Active' ? 'Deactivate' : 'Activate'}</button>
-                     <button onclick="deleteEntity('${entity.type}', '${entity.id}')" class="text-red-600 hover:text-red-900">Delete</button>` :
-                    `<button onclick="editEntity('${entity.type}', '${entity.id}')" class="text-indigo-600 hover:text-indigo-900">Edit</button>`
+                        `<button onclick="platformManager.toggleEntityStatus('${entity.type}', '${entity.id}', '${entity.status}')" class="text-blue-600 hover:text-blue-900 mr-3">${entity.status === 'Active' ? 'Deactivate' : 'Activate'}</button>
+                         <button onclick="platformManager.deleteEntity('${entity.type}', '${entity.id}')" class="text-red-600 hover:text-red-900">Delete</button>` :
+                        `<button onclick="platformManager.editEntity('${entity.type}', '${entity.id}')" class="text-indigo-600 hover:text-indigo-900">Edit</button>`
                 }
             </td>
         </tr>
     `).join('');
 }
 
-function getTypeColor(type) {
-    switch(type) {
-        case 'greenhouse': return 'bg-green-100 text-green-800';
-        case 'sensor': return 'bg-blue-100 text-blue-800';
-        case 'data': return 'bg-yellow-100 text-yellow-800';
-        case 'user': return 'bg-purple-100 text-purple-800';
-        case 'company': return 'bg-indigo-100 text-indigo-800';
-        case 'position': return 'bg-pink-100 text-pink-800';
-        default: return 'bg-gray-100 text-gray-800';
+    getTypeColor(type) {
+        const colors = {
+            greenhouse: 'bg-green-100 text-green-800',
+            sensor: 'bg-blue-100 text-blue-800',
+            data: 'bg-yellow-100 text-yellow-800',
+            user: 'bg-purple-100 text-purple-800',
+            company: 'bg-indigo-100 text-indigo-800',
+            position: 'bg-pink-100 text-pink-800'
+        };
+        return colors[type] || 'bg-gray-100 text-gray-800';
     }
+
+    getStatusColor(status) {
+        const colors = {
+            active: 'bg-green-100 text-green-800',
+            recorded: 'bg-blue-100 text-blue-800',
+            offline: 'bg-red-100 text-red-800'
+        };
+        return colors[status.toLowerCase()] || 'bg-gray-100 text-gray-800';
 }
 
-function getStatusColor(status) {
-    switch(status.toLowerCase()) {
-        case 'active': return 'bg-green-100 text-green-800';
-        case 'recorded': return 'bg-blue-100 text-blue-800';
-        case 'offline': return 'bg-red-100 text-red-800';
-        default: return 'bg-gray-100 text-gray-800';
-    }
-}
-
-function formatDate(dateString) {
+    formatDate(dateString) {
     if (!dateString) return 'N/A';
     try {
         const date = new Date(dateString);
@@ -582,46 +710,236 @@ function formatDate(dateString) {
     }
 }
 
-function viewEntity(type, id) {
-    showNotification(`Viewing ${type} with ID: ${id}`, 'info', 'View Entity');
+    /**
+     * Debounced refresh to prevent rapid successive calls
+     */
+    refreshData() {
+        if (this.refreshTimeout) {
+            clearTimeout(this.refreshTimeout);
 }
 
-function editEntity(type, id) {
-    showNotification(`Editing ${type} with ID: ${id}`, 'info', 'Edit Entity');
+        this.refreshTimeout = setTimeout(() => {
+            this.loadSystemData(true);
+        }, 300);
 }
 
-function refreshData() {
-    // Show loading state
-    const tbody = document.getElementById('entityTableBody');
-    if (tbody) {
-        tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-4 text-center text-gray-500">Refreshing data...</td></tr>';
-    }
-    
-    // Reload data without page refresh
-    loadSystemData();
-}
-
-function renderRealData() {
-    const tbody = document.getElementById('entityTableBody');
-    if (tbody) {
-        tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-4 text-center text-gray-500">Loading real system data...</td></tr>';
-    }
-    
-    // Load and display real data here - only call once
-    loadSystemData();
-}
-
-// Add event listeners for filters
-function initializeFilters() {
+    initializeFilters() {
     const filterType = document.getElementById('filterType');
     const searchInput = document.getElementById('searchInput');
     
     if (filterType) {
-        filterType.addEventListener('change', renderEntityTable);
+            filterType.addEventListener('change', () => this.renderEntityTable());
     }
     
     if (searchInput) {
-        searchInput.addEventListener('input', renderEntityTable);
+            // Debounce search input
+            let searchTimeout;
+            searchInput.addEventListener('input', () => {
+                clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(() => this.renderEntityTable(), 300);
+            });
+        }
+    }
+
+    setupEventListeners() {
+        // Modal events
+        const modalEntityType = document.getElementById('modalEntityType');
+        if (modalEntityType) {
+            modalEntityType.addEventListener('change', () => this.updateModalFields());
+        }
+
+        const addEntityForm = document.getElementById('addEntityForm');
+        if (addEntityForm) {
+            addEntityForm.addEventListener('submit', (e) => this.handleAddEntity(e));
+        }
+    }
+
+    // Entity management methods
+    viewEntity(type, id) {
+        showNotification(`Viewing ${type} with ID: ${id}`, 'info', 'View Entity');
+    }
+
+    editEntity(type, id) {
+        showNotification(`Editing ${type} with ID: ${id}`, 'info', 'Edit Entity');
+    }
+
+    async showAddEntityModal() {
+    const modal = document.getElementById('addEntityModal');
+    modal.classList.remove('hidden');
+    
+        // Lazy load companies and positions only when modal is opened
+        if (this.companies.length === 0 || this.positions.length === 0) {
+    try {
+                const [companiesData, positionsData] = await Promise.all([
+                    this.makeRequest('api/users.php?type=companies'),
+                    this.makeRequest('api/users.php?type=positions')
+        ]);
+        
+                this.companies = companiesData?.success ? companiesData.data : [];
+                this.positions = positionsData?.success ? positionsData.data : [];
+        
+                this.updateModalCompanySelect();
+                this.updateModalPositionSelect();
+    } catch (error) {
+        console.error('Error loading companies and positions:', error);
+            }
+    }
+    
+        this.updateModalFields();
+}
+
+    closeAddEntityModal() {
+    const modal = document.getElementById('addEntityModal');
+    modal.classList.add('hidden');
+    document.getElementById('addEntityForm').reset();
+}
+
+    updateModalFields() {
+    const type = document.getElementById('modalEntityType').value;
+    const userFields = document.getElementById('userFields');
+    const modalTitle = document.getElementById('modalTitle');
+    
+    modalTitle.textContent = `Add New ${type.charAt(0).toUpperCase() + type.slice(1)}`;
+    
+    if (type === 'user') {
+        userFields.style.display = 'block';
+    } else {
+        userFields.style.display = 'none';
+    }
+}
+
+    updateModalCompanySelect() {
+    const companySelect = document.getElementById('entityCompany');
+    companySelect.innerHTML = '<option value="">Select a company...</option>';
+    
+        if (Array.isArray(this.companies)) {
+            this.companies.forEach(company => {
+            const option = document.createElement('option');
+            option.value = company.id_company;
+            option.textContent = company.name_company;
+            companySelect.appendChild(option);
+        });
+    }
+}
+
+    updateModalPositionSelect() {
+    const positionSelect = document.getElementById('entityPosition');
+    positionSelect.innerHTML = '<option value="">Select a position...</option>';
+    
+        if (Array.isArray(this.positions)) {
+            this.positions.forEach(position => {
+            const option = document.createElement('option');
+            option.value = position.id_position;
+            option.textContent = position.name_position;
+            positionSelect.appendChild(option);
+        });
+    }
+}
+
+    async toggleEntityStatus(type, id, currentStatus) {
+    const newStatus = currentStatus === 'Active' ? 'inactive' : 'active';
+    
+    try {
+        const response = await fetch('api/users.php', {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                type: type,
+                id: id,
+                status: newStatus
+            })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+                // Clear cache and refresh
+                this.cache.clear();
+                this.refreshData();
+            showSuccessNotification('Status updated successfully', 'Status Update');
+        } else {
+            showErrorNotification('Error updating status: ' + result.message, 'Update Failed');
+        }
+    } catch (error) {
+        console.error('Error updating status:', error);
+        showErrorNotification('Error updating status', 'Network Error');
+    }
+}
+
+    async deleteEntity(type, id) {
+    const confirmed = await showConfirmDialog(`Are you sure you want to delete this ${type}?`, null, 'Delete Confirmation');
+    if (!confirmed) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`api/users.php?type=${type}&id=${id}`, {
+            method: 'DELETE'
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+                // Clear cache and refresh
+                this.cache.clear();
+                this.refreshData();
+            showSuccessNotification('Entity deleted successfully', 'Delete Success');
+        } else {
+            showErrorNotification('Error deleting: ' + result.message, 'Delete Failed');
+        }
+    } catch (error) {
+        console.error('Error deleting:', error);
+        showErrorNotification('Error deleting entity', 'Network Error');
+    }
+}
+
+    async handleAddEntity(e) {
+    e.preventDefault();
+    
+    const type = document.getElementById('modalEntityType').value;
+    const name = document.getElementById('entityName').value;
+    
+    const data = {
+        type: type,
+        name: name
+    };
+    
+    if (type === 'user') {
+        const email = document.getElementById('entityEmail').value;
+        const companyId = document.getElementById('entityCompany').value;
+        const positionId = document.getElementById('entityPosition').value;
+        
+        data.email = email;
+        if (companyId) data.company_id = parseInt(companyId);
+        if (positionId) data.position_id = parseInt(positionId);
+    }
+    
+    try {
+        const response = await fetch('api/users.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data)
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+                this.closeAddEntityModal();
+                // Clear cache and refresh
+                this.cache.clear();
+                this.refreshData();
+            showSuccessNotification('Entity created successfully', 'Creation Success');
+        } else {
+            showErrorNotification('Error creating: ' + result.message, 'Creation Failed');
+        }
+    } catch (error) {
+        console.error('Error creating entity:', error);
+        showErrorNotification('Error creating entity', 'Network Error');
+    }
     }
 }
 
@@ -629,13 +947,11 @@ function initializeFilters() {
 function performBackup() {
     showConfirmDialog('Are you sure you want to perform a database backup?', () => {
         showSuccessNotification('Database backup initiated. This may take a few minutes.', 'Backup Started');
-        // Add real backup functionality here
     }, 'Database Backup');
 }
 
 function checkSystemHealth() {
     showSuccessNotification('System health check completed. All systems operational.', 'System Health');
-    // Add real health check functionality here
 }
 
 function exportSystemLogs() {
@@ -648,7 +964,6 @@ function manageSettings() {
 
 async function refreshActivity() {
     try {
-        // Show loading state
         const activityLog = document.getElementById('activityLog');
         if (activityLog) {
             activityLog.innerHTML = '<div class="px-6 py-4 text-center text-gray-500">Refreshing activity...</div>';
@@ -688,191 +1003,53 @@ async function refreshActivity() {
     }
 }
 
-// User management functions
-let companies = [];
-let positions = [];
+// Global functions for backwards compatibility
+function refreshData() {
+    platformManager.refreshData();
+}
 
-async function showAddEntityModal() {
-    const modal = document.getElementById('addEntityModal');
-    modal.classList.remove('hidden');
-    
-    // Load companies and positions for user form
-    try {
-        const [companiesResponse, positionsResponse] = await Promise.all([
-            fetch('api/users.php?type=companies'),
-            fetch('api/users.php?type=positions')
-        ]);
-        
-        const companiesData = await companiesResponse.json();
-        const positionsData = await positionsResponse.json();
-        
-        companies = companiesData.success ? companiesData.data : [];
-        positions = positionsData.success ? positionsData.data : [];
-        
-        updateModalCompanySelect();
-        updateModalPositionSelect();
-    } catch (error) {
-        console.error('Error loading companies and positions:', error);
-    }
-    
-    // Set up form based on selected type
-    updateModalFields();
+function showAddEntityModal() {
+    platformManager.showAddEntityModal();
 }
 
 function closeAddEntityModal() {
-    const modal = document.getElementById('addEntityModal');
-    modal.classList.add('hidden');
-    document.getElementById('addEntityForm').reset();
+    platformManager.closeAddEntityModal();
 }
 
-function updateModalFields() {
-    const type = document.getElementById('modalEntityType').value;
-    const userFields = document.getElementById('userFields');
-    const modalTitle = document.getElementById('modalTitle');
-    
-    modalTitle.textContent = `Add New ${type.charAt(0).toUpperCase() + type.slice(1)}`;
-    
-    if (type === 'user') {
-        userFields.style.display = 'block';
-    } else {
-        userFields.style.display = 'none';
+// Initialize platform manager immediately and make it globally available
+let platformManager;
+
+// Initialize immediately to make it available for other scripts
+function initializePlatformManager() {
+    if (!platformManager) {
+        platformManager = new PlatformManager();
+        // Make it globally accessible
+        window.platformManager = platformManager;
+        
+        // Initial load with lazy loading
+        platformManager.loadSystemData();
     }
+    return platformManager;
 }
 
-function updateModalCompanySelect() {
-    const companySelect = document.getElementById('entityCompany');
-    companySelect.innerHTML = '<option value="">Select a company...</option>';
-    
-    if (Array.isArray(companies)) {
-        companies.forEach(company => {
-            const option = document.createElement('option');
-            option.value = company.id_company;
-            option.textContent = company.name_company;
-            companySelect.appendChild(option);
-        });
+// Expose additional global functions for backward compatibility
+function loadSystemData() {
+    if (platformManager) {
+        platformManager.loadSystemData(true);
     }
 }
 
-function updateModalPositionSelect() {
-    const positionSelect = document.getElementById('entityPosition');
-    positionSelect.innerHTML = '<option value="">Select a position...</option>';
-    
-    if (Array.isArray(positions)) {
-        positions.forEach(position => {
-            const option = document.createElement('option');
-            option.value = position.id_position;
-            option.textContent = position.name_position;
-            positionSelect.appendChild(option);
-        });
+function renderRealData() {
+    if (platformManager) {
+        platformManager.loadSystemData(true);
     }
 }
 
-async function toggleEntityStatus(type, id, currentStatus) {
-    const newStatus = currentStatus === 'Active' ? 'inactive' : 'active';
-    
-    try {
-        const response = await fetch('api/users.php', {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-                type: type,
-                id: id,
-                status: newStatus
-            })
-        });
-        
-        const result = await response.json();
-        
-        if (result.success) {
-            refreshData();
-            showSuccessNotification('Status updated successfully', 'Status Update');
-        } else {
-            showErrorNotification('Error updating status: ' + result.message, 'Update Failed');
-        }
-    } catch (error) {
-        console.error('Error updating status:', error);
-        showErrorNotification('Error updating status', 'Network Error');
-    }
-}
+// Initialize immediately when script loads
+initializePlatformManager();
 
-async function deleteEntity(type, id) {
-    const confirmed = await showConfirmDialog(`Are you sure you want to delete this ${type}?`, null, 'Delete Confirmation');
-    if (!confirmed) {
-        return;
-    }
-    
-    try {
-        const response = await fetch(`api/users.php?type=${type}&id=${id}`, {
-            method: 'DELETE'
-        });
-        
-        const result = await response.json();
-        
-        if (result.success) {
-            refreshData();
-            showSuccessNotification('Entity deleted successfully', 'Delete Success');
-        } else {
-            showErrorNotification('Error deleting: ' + result.message, 'Delete Failed');
-        }
-    } catch (error) {
-        console.error('Error deleting:', error);
-        showErrorNotification('Error deleting entity', 'Network Error');
-    }
-}
-
-// Event listeners
-document.getElementById('modalEntityType').addEventListener('change', updateModalFields);
-
-document.getElementById('addEntityForm').addEventListener('submit', async function(e) {
-    e.preventDefault();
-    
-    const type = document.getElementById('modalEntityType').value;
-    const name = document.getElementById('entityName').value;
-    
-    const data = {
-        type: type,
-        name: name
-    };
-    
-    if (type === 'user') {
-        const email = document.getElementById('entityEmail').value;
-        const companyId = document.getElementById('entityCompany').value;
-        const positionId = document.getElementById('entityPosition').value;
-        
-        data.email = email;
-        if (companyId) data.company_id = parseInt(companyId);
-        if (positionId) data.position_id = parseInt(positionId);
-    }
-    
-    try {
-        const response = await fetch('api/users.php', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(data)
-        });
-        
-        const result = await response.json();
-        
-        if (result.success) {
-            closeAddEntityModal();
-            refreshData();
-            showSuccessNotification('Entity created successfully', 'Creation Success');
-        } else {
-            showErrorNotification('Error creating: ' + result.message, 'Creation Failed');
-        }
-    } catch (error) {
-        console.error('Error creating entity:', error);
-        showErrorNotification('Error creating entity', 'Network Error');
-    }
-});
-
-// Initialize with real data
+// Also initialize on DOM ready as fallback
 document.addEventListener('DOMContentLoaded', function() {
-    initializeFilters();
-    renderRealData();
+    initializePlatformManager();
 });
 </script> 

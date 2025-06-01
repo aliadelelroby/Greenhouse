@@ -85,6 +85,46 @@ class DataRepository implements DataRepositoryInterface
         return $this->executeDataQuery($sql, $types, $params, 'hour_timestamp', 'avg_value');
     }
     
+    /**
+     * Get weather data for specified date range
+     */
+    public function findWeatherData(?string $startDate = null, ?string $endDate = null): array
+    {
+        $sql = "SELECT 
+                    FROM_UNIXTIME(Date_data, '%Y-%m-%d %H:%i:00') as timestamp,
+                    temperature,
+                    humidity,
+                    wind_speed,
+                    wind_direction,
+                    global_radiation,
+                    dew_point,
+                    cloud_cover,
+                    fog,
+                    snow,
+                    sunshine_duration
+                FROM weather 
+                WHERE 1=1";
+        
+        $params = [];
+        $types = '';
+        
+        if ($startDate) {
+            $sql .= " AND FROM_UNIXTIME(Date_data) >= ?";
+            $params[] = $startDate;
+            $types .= 's';
+        }
+        
+        if ($endDate) {
+            $sql .= " AND FROM_UNIXTIME(Date_data) <= DATE_ADD(?, INTERVAL 1 DAY)";
+            $params[] = $endDate;
+            $types .= 's';
+        }
+        
+        $sql .= " ORDER BY Date_data";
+        
+        return $this->executeWeatherQuery($sql, $types, $params);
+    }
+    
     private function executeDataQuery(string $sql, string $types, array $params, string $timestampField = 'timestamp', string $valueField = 'value'): array
     {
         $stmt = $this->connection->prepare($sql);
@@ -92,7 +132,9 @@ class DataRepository implements DataRepositoryInterface
             throw new RuntimeException("Failed to prepare data query: " . $this->connection->error);
         }
         
-        $stmt->bind_param($types, ...$params);
+        if (!empty($params)) {
+            $stmt->bind_param($types, ...$params);
+        }
         $stmt->execute();
         $result = $stmt->get_result();
         
@@ -109,6 +151,40 @@ class DataRepository implements DataRepositoryInterface
             $data[$sensorId][] = [
                 'timestamp' => $timestamp,
                 'value' => $value
+            ];
+        }
+        
+        $stmt->close();
+        return $data;
+    }
+    
+    private function executeWeatherQuery(string $sql, string $types, array $params): array
+    {
+        $stmt = $this->connection->prepare($sql);
+        if (!$stmt) {
+            throw new RuntimeException("Failed to prepare weather query: " . $this->connection->error);
+        }
+        
+        if (!empty($params)) {
+            $stmt->bind_param($types, ...$params);
+        }
+        $stmt->execute();
+        $result = $stmt->get_result();
+        
+        $data = [];
+        while ($row = $result->fetch_assoc()) {
+            $data[] = [
+                'timestamp' => $row['timestamp'],
+                'temperature' => (float)$row['temperature'],
+                'humidity' => (float)$row['humidity'],
+                'wind_speed' => (float)$row['wind_speed'],
+                'wind_direction' => (float)$row['wind_direction'],
+                'global_radiation' => (float)$row['global_radiation'],
+                'dew_point' => (float)$row['dew_point'],
+                'cloud_cover' => (int)$row['cloud_cover'],
+                'fog' => (int)$row['fog'],
+                'snow' => (int)$row['snow'],
+                'sunshine_duration' => (int)$row['sunshine_duration']
             ];
         }
         

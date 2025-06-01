@@ -155,10 +155,12 @@ try {
                                             Active
                                         </span>
                                     </td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                        <button onclick="viewGreenhouse(<?php echo $greenhouse['Id_greenhouse']; ?>)" class="text-thermeleon-600 hover:text-thermeleon-900 mr-3">View</button>
-                                        <button onclick="exportGreenhouseData(<?php echo $greenhouse['Id_greenhouse']; ?>)" class="text-blue-600 hover:text-blue-900">Export</button>
-                                    </td>
+                                                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                <button onclick="viewGreenhouse(<?php echo $greenhouse['Id_greenhouse']; ?>)" class="text-thermeleon-600 hover:text-thermeleon-900 mr-3">View</button>
+                                <button onclick="editGreenhouse(<?php echo $greenhouse['Id_greenhouse']; ?>, '<?php echo htmlspecialchars($greenhouse['Name_greenhouse']); ?>')" class="text-indigo-600 hover:text-indigo-900 mr-3">Edit</button>
+                                <button onclick="exportGreenhouseData(<?php echo $greenhouse['Id_greenhouse']; ?>)" class="text-blue-600 hover:text-blue-900 mr-3">Export</button>
+                                <button onclick="deleteGreenhouse(<?php echo $greenhouse['Id_greenhouse']; ?>, '<?php echo htmlspecialchars($greenhouse['Name_greenhouse']); ?>')" class="text-red-600 hover:text-red-900">Delete</button>
+                            </td>
                                 </tr>
                             <?php endforeach; ?>
                         <?php else: ?>
@@ -181,6 +183,26 @@ try {
                 <h3 class="text-lg font-semibold text-gray-900">Quick Actions</h3>
             </div>
             <div class="p-6 space-y-4 flex-1">
+                <button onclick="showAddGreenhouseModal()" class="w-full flex items-center px-4 py-3 text-left bg-green-50 rounded-lg hover:bg-green-100 transition-colors duration-200">
+                    <svg class="w-5 h-5 text-green-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                    </svg>
+                    <div>
+                        <div class="text-sm font-medium text-gray-900">Add Greenhouse</div>
+                        <div class="text-xs text-gray-500">Create new greenhouse</div>
+                    </div>
+                </button>
+                
+                <button onclick="showAddSensorModal()" class="w-full flex items-center px-4 py-3 text-left bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors duration-200">
+                    <svg class="w-5 h-5 text-blue-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                    </svg>
+                    <div>
+                        <div class="text-sm font-medium text-gray-900">Add Sensor</div>
+                        <div class="text-xs text-gray-500">Create new sensor</div>
+                    </div>
+                </button>
+                
                 <button onclick="exportAllData()" class="w-full flex items-center px-4 py-3 text-left bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors duration-200">
                     <svg class="w-5 h-5 text-gray-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
@@ -257,6 +279,135 @@ try {
                     No recent alerts
                 </div>
             <?php endif; ?>
+        </div>
+    </div>
+</div>
+
+<!-- Add Greenhouse Modal -->
+<div id="addGreenhouseModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden z-50">
+    <div class="flex items-center justify-center min-h-screen p-4">
+        <div class="bg-white rounded-lg shadow-xl max-w-md w-full">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h3 class="text-lg font-semibold text-gray-900">Add New Greenhouse</h3>
+            </div>
+            <div class="p-6">
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Greenhouse Name:</label>
+                    <input type="text" id="greenhouseName" class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white hover:border-gray-400 focus:ring-2 focus:ring-thermeleon-500 focus:border-thermeleon-500 transition-colors" required>
+                </div>
+                
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Company ID:</label>
+                    <input type="number" id="greenhouseCompanyId" class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white hover:border-gray-400 focus:ring-2 focus:ring-thermeleon-500 focus:border-thermeleon-500 transition-colors" required>
+                </div>
+                
+                <div class="grid grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Max X:</label>
+                        <input type="number" id="greenhouseXMax" class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white hover:border-gray-400 focus:ring-2 focus:ring-thermeleon-500 focus:border-thermeleon-500 transition-colors">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Max Y:</label>
+                        <input type="number" id="greenhouseYMax" class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white hover:border-gray-400 focus:ring-2 focus:ring-thermeleon-500 focus:border-thermeleon-500 transition-colors">
+                    </div>
+                </div>
+                
+                <div class="flex justify-end space-x-3">
+                    <button type="button" onclick="closeAddGreenhouseModal()" class="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50">
+                        Cancel
+                    </button>
+                    <button type="button" onclick="handleAddGreenhouseSubmit(event)" class="px-4 py-2 bg-thermeleon-500 text-white rounded-lg hover:bg-thermeleon-600">
+                        Add Greenhouse
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Sensor Modal -->
+<div id="addSensorModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden z-50">
+    <div class="flex items-center justify-center min-h-screen p-4">
+        <div class="bg-white rounded-lg shadow-xl max-w-md w-full">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h3 class="text-lg font-semibold text-gray-900">Add New Sensor</h3>
+            </div>
+            <div class="p-6">
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Sensor Name:</label>
+                    <input type="text" id="sensorName" class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white hover:border-gray-400 focus:ring-2 focus:ring-thermeleon-500 focus:border-thermeleon-500 transition-colors" required>
+                </div>
+                
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Description:</label>
+                    <textarea id="sensorDescription" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white hover:border-gray-400 focus:ring-2 focus:ring-thermeleon-500 focus:border-thermeleon-500 transition-colors"></textarea>
+                </div>
+                
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Sensor Model ID:</label>
+                    <input type="number" id="sensorModelId" class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white hover:border-gray-400 focus:ring-2 focus:ring-thermeleon-500 focus:border-thermeleon-500 transition-colors" required value="1" min="1">
+                    <p class="text-xs text-gray-500 mt-1">Default sensor model ID (you can change this if needed)</p>
+                </div>
+                
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Greenhouse:</label>
+                    <select id="sensorGreenhouseId" class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white hover:border-gray-400 focus:ring-2 focus:ring-thermeleon-500 focus:border-thermeleon-500 transition-colors" required>
+                        <option value="">Select a greenhouse...</option>
+                    </select>
+                </div>
+                
+                <div class="flex justify-end space-x-3">
+                    <button type="button" onclick="closeAddSensorModal()" class="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50">
+                        Cancel
+                    </button>
+                    <button type="button" onclick="handleAddSensorSubmit(event)" class="px-4 py-2 bg-thermeleon-500 text-white rounded-lg hover:bg-thermeleon-600">
+                        Add Sensor
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Greenhouse Modal -->
+<div id="editGreenhouseModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden z-50">
+    <div class="flex items-center justify-center min-h-screen p-4">
+        <div class="bg-white rounded-lg shadow-xl max-w-md w-full">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h3 class="text-lg font-semibold text-gray-900">Edit Greenhouse</h3>
+            </div>
+            <div class="p-6">
+                <input type="hidden" id="editGreenhouseId">
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Greenhouse Name:</label>
+                    <input type="text" id="editGreenhouseName" class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white hover:border-gray-400 focus:ring-2 focus:ring-thermeleon-500 focus:border-thermeleon-500 transition-colors" required>
+                </div>
+                
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Company ID:</label>
+                    <input type="number" id="editGreenhouseCompanyId" class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white hover:border-gray-400 focus:ring-2 focus:ring-thermeleon-500 focus:border-thermeleon-500 transition-colors" required>
+                </div>
+                
+                <div class="grid grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Max X:</label>
+                        <input type="number" id="editGreenhouseXMax" class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white hover:border-gray-400 focus:ring-2 focus:ring-thermeleon-500 focus:border-thermeleon-500 transition-colors">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Max Y:</label>
+                        <input type="number" id="editGreenhouseYMax" class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white hover:border-gray-400 focus:ring-2 focus:ring-thermeleon-500 focus:border-thermeleon-500 transition-colors">
+                    </div>
+                </div>
+                
+                <div class="flex justify-end space-x-3">
+                    <button type="button" onclick="closeEditGreenhouseModal()" class="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50">
+                        Cancel
+                    </button>
+                    <button type="button" onclick="handleEditGreenhouseSubmit(event)" class="px-4 py-2 bg-thermeleon-500 text-white rounded-lg hover:bg-thermeleon-600">
+                        Update Greenhouse
+                    </button>
+                </div>
+            </div>
         </div>
     </div>
 </div>
@@ -397,8 +548,313 @@ function acknowledgeAlert(sensorId) {
     // In a real implementation, you'd make an API call here
 }
 
-// Initialize when DOM is loaded
+// Greenhouse Management Functions
+async function showAddGreenhouseModal() {
+    const modal = document.getElementById('addGreenhouseModal');
+    modal.classList.remove('hidden');
+}
+
+function closeAddGreenhouseModal() {
+    const modal = document.getElementById('addGreenhouseModal');
+    modal.classList.add('hidden');
+    // Clear form fields manually since we removed the form element
+    document.getElementById('greenhouseName').value = '';
+    document.getElementById('greenhouseCompanyId').value = '';
+    document.getElementById('greenhouseXMax').value = '';
+    document.getElementById('greenhouseYMax').value = '';
+}
+
+async function showAddSensorModal() {
+    const modal = document.getElementById('addSensorModal');
+    
+    // Load greenhouse list for dropdown
+    try {
+        const response = await fetch('api/sensors.php?greenhouse_list=1');
+        const greenhouses = await response.json();
+        
+        const select = document.getElementById('sensorGreenhouseId');
+        select.innerHTML = '<option value="">Select a greenhouse...</option>';
+        
+        if (Array.isArray(greenhouses)) {
+            greenhouses.forEach(greenhouse => {
+                const option = document.createElement('option');
+                option.value = greenhouse.Id_greenhouse;
+                option.textContent = greenhouse.Name_greenhouse;
+                select.appendChild(option);
+            });
+        }
+    } catch (error) {
+        console.error('Error loading greenhouses:', error);
+    }
+    
+    modal.classList.remove('hidden');
+}
+
+function closeAddSensorModal() {
+    const modal = document.getElementById('addSensorModal');
+    modal.classList.add('hidden');
+    // Clear form fields manually since we removed the form element
+    document.getElementById('sensorName').value = '';
+    document.getElementById('sensorDescription').value = '';
+    document.getElementById('sensorModelId').value = '1'; // Reset to default
+    document.getElementById('sensorGreenhouseId').value = '';
+}
+
+async function editGreenhouse(id, name) {
+    // Load greenhouse details
+    try {
+        const response = await fetch(`api/sensors.php?greenhouse_list=1`);
+        const greenhouses = await response.json();
+        const greenhouse = greenhouses.find(g => g.Id_greenhouse == id);
+        
+        if (greenhouse) {
+            document.getElementById('editGreenhouseId').value = greenhouse.Id_greenhouse;
+            document.getElementById('editGreenhouseName').value = greenhouse.Name_greenhouse;
+            document.getElementById('editGreenhouseCompanyId').value = greenhouse.Id_company;
+            document.getElementById('editGreenhouseXMax').value = greenhouse.X_max || '';
+            document.getElementById('editGreenhouseYMax').value = greenhouse.Y_max || '';
+            
+            document.getElementById('editGreenhouseModal').classList.remove('hidden');
+        }
+    } catch (error) {
+        console.error('Error loading greenhouse details:', error);
+        showErrorNotification('Error loading greenhouse details', 'Load Failed');
+    }
+}
+
+function closeEditGreenhouseModal() {
+    const modal = document.getElementById('editGreenhouseModal');
+    modal.classList.add('hidden');
+    // Clear form fields manually since we removed the form element
+    document.getElementById('editGreenhouseId').value = '';
+    document.getElementById('editGreenhouseName').value = '';
+    document.getElementById('editGreenhouseCompanyId').value = '';
+    document.getElementById('editGreenhouseXMax').value = '';
+    document.getElementById('editGreenhouseYMax').value = '';
+}
+
+async function deleteGreenhouse(id, name) {
+    const confirmed = await showConfirmDialog(`Are you sure you want to delete "${name}"?`, null, 'Delete Greenhouse');
+    if (!confirmed) return;
+    
+    try {
+        const response = await fetch(`api/sensors.php?type=greenhouse&id=${id}`, {
+            method: 'DELETE'
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            showSuccessNotification('Greenhouse deleted successfully', 'Delete Success');
+            refreshData();
+        } else {
+            showErrorNotification('Error deleting greenhouse: ' + result.message, 'Delete Failed');
+        }
+    } catch (error) {
+        console.error('Error deleting greenhouse:', error);
+        showErrorNotification('Error deleting greenhouse', 'Network Error');
+    }
+}
+
+/**
+ * Handles submission for adding a new greenhouse
+ */
+async function handleAddGreenhouseSubmit(event) {
+    if (event) {
+        event.preventDefault();
+        event.stopPropagation();
+    }
+    
+    const submitButton = document.querySelector('#addGreenhouseModal button[onclick*="handleAddGreenhouseSubmit"]');
+    const originalText = submitButton.textContent;
+    submitButton.disabled = true;
+    submitButton.textContent = 'Adding...';
+    
+    try {
+        const formData = {
+            type: 'greenhouse',
+            name: document.getElementById('greenhouseName').value.trim(),
+            company_id: parseInt(document.getElementById('greenhouseCompanyId').value),
+            x_max: document.getElementById('greenhouseXMax').value || null,
+            y_max: document.getElementById('greenhouseYMax').value || null
+        };
+        
+        if (!formData.name) {
+            throw new Error('Greenhouse name is required');
+        }
+        
+        if (!formData.company_id || isNaN(formData.company_id)) {
+            throw new Error('Valid company ID is required');
+        }
+        
+        const response = await fetch('api/sensors.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(formData)
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            closeAddGreenhouseModal();
+            if (typeof showSuccessNotification === 'function') {
+                showSuccessNotification('Greenhouse created successfully', 'Create Success');
+            }
+            await refreshData();
+        } else {
+            throw new Error(result.message || 'Unknown error occurred');
+        }
+    } catch (error) {
+        console.error('Error creating greenhouse:', error);
+        if (typeof showErrorNotification === 'function') {
+            showErrorNotification('Error creating greenhouse: ' + error.message, 'Create Failed');
+        } else {
+            alert('Error creating greenhouse: ' + error.message);
+        }
+    } finally {
+        submitButton.disabled = false;
+        submitButton.textContent = originalText;
+    }
+}
+
+/**
+ * Handles submission for adding a new sensor
+ */
+async function handleAddSensorSubmit(event) {
+    if (event) {
+        event.preventDefault();
+        event.stopPropagation();
+    }
+    
+    const submitButton = document.querySelector('#addSensorModal button[onclick*="handleAddSensorSubmit"]');
+    const originalText = submitButton.textContent;
+    submitButton.disabled = true;
+    submitButton.textContent = 'Adding...';
+    
+    try {
+        const formData = {
+            type: 'sensor',
+            name: document.getElementById('sensorName').value.trim(),
+            description: document.getElementById('sensorDescription').value.trim(),
+            greenhouse_id: parseInt(document.getElementById('sensorGreenhouseId').value),
+            sensor_model_id: parseInt(document.getElementById('sensorModelId').value)
+        };
+        
+        if (!formData.name) {
+            throw new Error('Sensor name is required');
+        }
+        
+        if (!formData.greenhouse_id || isNaN(formData.greenhouse_id)) {
+            throw new Error('Please select a greenhouse');
+        }
+        
+        if (!formData.sensor_model_id || isNaN(formData.sensor_model_id)) {
+            throw new Error('Please provide a valid sensor model ID');
+        }
+        
+        const response = await fetch('api/sensors.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(formData)
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            closeAddSensorModal();
+            if (typeof showSuccessNotification === 'function') {
+                showSuccessNotification('Sensor created successfully', 'Create Success');
+            }
+            await refreshData();
+        } else {
+            throw new Error(result.message || 'Unknown error occurred');
+        }
+    } catch (error) {
+        console.error('Error creating sensor:', error);
+        if (typeof showErrorNotification === 'function') {
+            showErrorNotification('Error creating sensor: ' + error.message, 'Create Failed');
+        } else {
+            alert('Error creating sensor: ' + error.message);
+        }
+    } finally {
+        submitButton.disabled = false;
+        submitButton.textContent = originalText;
+    }
+}
+
+/**
+ * Handles submission for editing a greenhouse
+ */
+async function handleEditGreenhouseSubmit(event) {
+    if (event) {
+        event.preventDefault();
+        event.stopPropagation();
+    }
+    
+    const submitButton = document.querySelector('#editGreenhouseModal button[onclick*="handleEditGreenhouseSubmit"]');
+    const originalText = submitButton.textContent;
+    submitButton.disabled = true;
+    submitButton.textContent = 'Updating...';
+    
+    try {
+        const formData = {
+            type: 'greenhouse',
+            id: parseInt(document.getElementById('editGreenhouseId').value),
+            name: document.getElementById('editGreenhouseName').value.trim(),
+            company_id: parseInt(document.getElementById('editGreenhouseCompanyId').value),
+            x_max: document.getElementById('editGreenhouseXMax').value || null,
+            y_max: document.getElementById('editGreenhouseYMax').value || null
+        };
+        
+        if (!formData.name) {
+            throw new Error('Greenhouse name is required');
+        }
+        
+        if (!formData.company_id || isNaN(formData.company_id)) {
+            throw new Error('Valid company ID is required');
+        }
+        
+        const response = await fetch('api/sensors.php', {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(formData)
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            closeEditGreenhouseModal();
+            if (typeof showSuccessNotification === 'function') {
+                showSuccessNotification('Greenhouse updated successfully', 'Update Success');
+            }
+            await refreshData();
+        } else {
+            throw new Error(result.message || 'Unknown error occurred');
+        }
+    } catch (error) {
+        console.error('Error updating greenhouse:', error);
+        if (typeof showErrorNotification === 'function') {
+            showErrorNotification('Error updating greenhouse: ' + error.message, 'Update Failed');
+        } else {
+            alert('Error updating greenhouse: ' + error.message);
+        }
+    } finally {
+        submitButton.disabled = false;
+        submitButton.textContent = originalText;
+    }
+}
+
+// Initialize manager functionality
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Manager tab loaded with real data');
+    
+    // No form event handlers needed since we're using onclick handlers directly
+    // The onclick handlers are attached via HTML attributes in the modal buttons
 });
 </script> 

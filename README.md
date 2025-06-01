@@ -1,227 +1,240 @@
-# Thermeleon Interface Dashboard - Real Backend Implementation
+# Thermeleon Greenhouse Dashboard
 
-This project implements a complete real-time greenhouse monitoring system with SOLID architecture principles and real database integration.
+A comprehensive greenhouse management and monitoring system with real-time sensor data visualization, weather integration, and complete CRUD operations for greenhouse and sensor management.
 
-## Architecture Overview
+## Features
 
-The system connects to a real MySQL database (`thermeleondb`) and provides live sensor data, greenhouse management, and platform administration capabilities.
+### 🏠 Greenhouse Management
 
-### Real Data Integration
+- **View all greenhouses** with detailed information
+- **Add new greenhouses** with company association and dimensions
+- **Edit existing greenhouses** including size and company details
+- **Delete greenhouses** with proper validation
+- **Export greenhouse-specific data** in multiple formats
 
-1. **Database Connection**
+### 📊 Sensor Management
 
-   - Connects to MySQL database `thermeleondb`
-   - Real-time sensor data from `data` table
-   - Greenhouse information from `greenhouse` table
-   - Sensor configurations from `sensor` table
+- **Comprehensive sensor overview** across all greenhouses
+- **Add new sensors** with description and greenhouse assignment
+- **Enable/disable sensors** for maintenance
+- **Real-time sensor data collection** from hardware devices
+- **Sensor status monitoring** and health checks
 
-2. **Live Data Features**
+### 📈 Data Visualization
 
-   - Real sensor readings with timestamps
-   - Dynamic greenhouse statistics
-   - Live temperature alerts
-   - Actual system health monitoring
+- **Interactive charts** using Chart.js with real-time updates
+- **Multiple sensor data** on single charts with color coding
+- **Weather data integration** with outdoor temperature overlay
+- **Customizable date ranges** for historical analysis
+- **Responsive design** that works on all devices
 
-3. **No Dummy Data**
-   - All statistics pulled from database
-   - Real-time activity logs
-   - Actual sensor counts and readings
-   - Live export functionality
+### 🌤️ Weather Integration
 
-### SOLID Principles Applied
+- **Outside weather data** displayed alongside greenhouse sensors
+- **Weather checkbox** to toggle outdoor conditions on charts
+- **Historical weather data** for environmental correlation
+- **Weather data API** for external integrations
 
-1. **Single Responsibility Principle (SRP)**
+### 👥 User Management
 
-   - Database connections handled by `Database` class
-   - Data operations by Repository classes
-   - Business logic by Service classes
-   - HTTP handling by Controller classes
+- **Complete user CRUD operations** (Create, Read, Update, Delete)
+- **Company management** with user associations
+- **Position/role management** for access control
+- **User statistics** and activity tracking
 
-2. **Open/Closed Principle (OCP)**
+### 📤 Data Export
 
-   - Easy to extend with new export types in `ExportService`
-   - New data repositories can be added without modifying existing code
+- **Quick export** (5-minute intervals) for rapid analysis
+- **Detailed export** (hourly averages) for comprehensive reports
+- **All data export** for complete system backup
+- **CSV format** with metadata headers
+- **Custom date range exports**
 
-3. **Liskov Substitution Principle (LSP)**
+### 🎛️ System Management
 
-   - Repository implementations can be substituted without breaking functionality
+- **Platform overview** with real-time statistics
+- **System health monitoring** with status indicators
+- **Database management** tools and backup functionality
+- **Activity logging** and audit trails
 
-4. **Interface Segregation Principle (ISP)**
+## Technical Architecture
 
-   - Separate interfaces for different repository types
-   - Clients only depend on methods they use
+### Backend (PHP)
 
-5. **Dependency Inversion Principle (DIP)**
-   - Controllers depend on interfaces, not concrete implementations
-   - Easy to mock for testing
+- **RESTful API design** with proper HTTP methods
+- **Repository pattern** for data access layer
+- **Service layer** for business logic
+- **Dependency injection** for clean architecture
+- **Error handling** with proper logging
 
-## Directory Structure
+### Frontend (JavaScript)
+
+- **Modular JavaScript** with clean separation of concerns
+- **Real-time data fetching** with async/await
+- **Chart.js integration** for data visualization
+- **Responsive UI** using Tailwind CSS
+- **Modal management** for CRUD operations
+
+### Database (MySQL)
+
+- **Optimized schema** with proper indexing
+- **Foreign key constraints** for data integrity
+- **Sample data generation** for testing
+- **Weather data integration** with historical records
+- **Efficient queries** for large datasets
+
+## Installation
+
+1. **Clone the repository**
+
+```bash
+git clone [repository-url]
+cd interface_dashboard
+```
+
+2. **Database Setup**
+
+```bash
+# Import the database schema and sample data
+mysql -u root -p < database_init.sql
+```
+
+3. **Configuration**
+
+```php
+// Update config/Database.php with your database credentials
+private string $host = "localhost";
+private string $database = "thermeleondb";
+private string $username = "your_username";
+private string $password = "your_password";
+```
+
+4. **Start the development server**
+
+```bash
+php -S localhost:8000
+```
+
+5. **Test the installation**
 
 ```
-/
-├── api/                          # Real API endpoints
-│   ├── data.php                  # Sensor data API
-│   ├── export.php                # Data export API
-│   ├── sensors.php               # Sensor & greenhouse API
-│   └── users.php                 # User management API
-├── config/
-│   └── Database.php              # Real database connection
-├── controllers/
-│   ├── DataController.php        # Data HTTP endpoints
-│   ├── ExportController.php      # Export HTTP endpoints
-│   └── SensorController.php      # Sensor HTTP endpoints
-├── interfaces/
-│   └── RepositoryInterface.php   # Repository contracts
-├── js/
-│   └── app.js                    # Frontend with real API calls
-├── repositories/
-│   ├── DataRepository.php        # Sensor data access
-│   ├── GreenhouseRepository.php  # Greenhouse data access
-│   ├── SensorRepository.php      # Sensor data access
-│   └── UserRepository.php        # User data access
-├── services/
-│   ├── ExportService.php         # Data export business logic
-│   └── ResponseService.php       # HTTP response handling
-├── tabs/
-│   ├── greenhouse.php            # Real greenhouse data
-│   ├── manager.php               # Real management interface
-│   ├── platform.php              # Real platform statistics
-│   └── presales.php              # Sales tools
-├── database_init.sql             # Complete database setup
-├── index.php                     # Main dashboard
-└── README.md                     # Project documentation
+Visit: http://localhost:8000/test_connection.php
 ```
-
-## Database Schema
-
-The system connects to these real database tables:
-
-- **greenhouse** - Greenhouse information
-- **sensor** - Sensor configurations and metadata
-- **data** - Real-time sensor readings
-- **sensor_types** - Sensor type definitions
 
 ## API Endpoints
 
-All endpoints provide real data from the database:
+### Sensor & Greenhouse Management
 
-- **GET** `/api/sensors.php?id={greenhouse_id}` - Get real sensors for greenhouse
-- **GET** `/api/sensors.php?greenhouse_list=1` - Get all greenhouses
-- **GET** `/api/data.php?sensors={ids}&start_date={date}&end_date={date}` - Get real sensor data
-- **GET** `/api/export.php?sensors={ids}&type={quick|detailed}` - Export real data
+- `GET /api/sensors.php` - List sensors
+- `POST /api/sensors.php` - Create sensor/greenhouse
+- `PUT /api/sensors.php` - Update sensor/greenhouse
+- `DELETE /api/sensors.php` - Delete sensor/greenhouse
 
-## Real-Time Features
+### Data Retrieval
 
-### Dashboard
+- `GET /api/data.php?sensors=1,2,3` - Get sensor data
+- `GET /api/data.php?weather=1` - Get weather data
+- `GET /api/export.php` - Export data in CSV format
 
-- Live sensor data visualization
-- Real-time temperature charts
-- Actual greenhouse statistics
-- Dynamic alert system
+### User Management
 
-### Platform Manager
+- `GET /api/users.php` - List users/companies/positions
+- `POST /api/users.php` - Create user/company/position
+- `PUT /api/users.php` - Update user status
+- `DELETE /api/users.php` - Delete user/company/position
 
-- Real database statistics
-- Live system health monitoring
-- Actual data point counts
-- Real activity logs from database
+## Usage Guide
 
-### Greenhouse Manager
+### Dashboard Navigation
 
-- Real greenhouse data from database
-- Actual sensor counts per greenhouse
-- Live temperature alerts
-- Real export functionality
+1. **Greenhouse Tab** - Monitor and visualize sensor data
+2. **Manager Tab** - CRUD operations for greenhouses and sensors
+3. **Platform Tab** - System administration and user management
+4. **Pre-sales Tab** - Tools for customer presentations
 
-### Export System
+### Adding a New Greenhouse
 
-- Real CSV data export
-- Actual sensor readings
-- Date range filtering
-- Metadata inclusion
+1. Go to Manager tab
+2. Click "Add Greenhouse"
+3. Fill in greenhouse details (name, company ID, dimensions)
+4. Save to create the greenhouse
 
-## Setup Instructions
+### Adding Sensors
 
-1. **Database Configuration**
+1. Go to Manager tab
+2. Click "Add Sensor"
+3. Enter sensor details and select greenhouse
+4. Sensor will be available for data collection
 
-   Update `config/Database.php` with your database credentials:
+### Viewing Data with Weather
 
-   ```php
-   private const HOST = 'localhost';
-   private const USER = 'root';
-   private const PASSWORD = 'As1234*@';
-   private const DATABASE = 'thermeleondb';
-   ```
+1. Go to Greenhouse tab
+2. Select a greenhouse
+3. Choose sensors to display
+4. Check "Include Weather Data" for outdoor temperature
+5. Adjust date range as needed
 
-2. **Database Initialization**
+### Exporting Data
 
-   Run the SQL scripts to create all tables and sample data:
+1. Select greenhouse and sensors
+2. Choose export type (Quick/Detailed)
+3. Data downloads as CSV with metadata
 
-   ```bash
-   # First, create the database structure
-   mysql -u root -p < current_sql.sql
+## Database Schema
 
-   # Then, populate with sample data
-   mysql -u root -p thermeleondb < sample_data.sql
-   ```
+### Key Tables
 
-   This creates:
+- **greenhouse** - Greenhouse definitions and properties
+- **sensor** - Sensor configurations and status
+- **data** - Time-series sensor readings
+- **weather** - External weather station data
+- **users/companies/positions** - User management
+- **user_greenhouse** - User access permissions
 
-   - All necessary database tables (from current_sql.sql)
-   - Sample greenhouses, sensors, and sensor types
-   - Sample companies, positions, and users
-   - Realistic sensor data for the last 7 days
-   - Complete relational data structure
+### Sample Data
 
-## Key Features
+The system includes comprehensive sample data:
 
-### Real Data Processing
+- 4 greenhouses with different configurations
+- 800+ sensors across all greenhouses
+- 7 days of historical sensor data
+- Weather data with realistic patterns
+- User accounts and company structures
 
-- ✅ Live sensor data from MySQL
-- ✅ Real-time temperature monitoring
-- ✅ Actual greenhouse statistics
-- ✅ Dynamic alert generation
-- ✅ Live data export
+## Sensor Data Collection
 
-### Platform Management
+The system is designed to receive automatic data from hardware sensors:
 
-- ✅ Real system statistics
-- ✅ Database health monitoring
-- ✅ Actual data point tracking
-- ✅ Live activity logging
-
-### Error Handling
-
-- Comprehensive exception management
-- Database connection monitoring
-- API endpoint health checks
-- Real-time error logging
-
-## Database Schema Compatibility
-
-This implementation is **fully compatible** with the current_sql.sql schema:
-
-- All queries updated to match actual table structure
-- Proper field name mapping (Id_greenhouse, Name_greenhouse, etc.)
-- Compatible with both `user` and `users` tables
-- Supports all relationships defined in the schema
-- No references to non-existent tables or fields
-
-## Testing
-
-To verify the setup works correctly:
-
-```bash
-# Open in your browser
-http://localhost/interface_dashboard/test_connection.php
+```sql
+-- Sensors push data using this format:
+INSERT INTO data (Id_sensor, Id_greenhouse, Value_data, Unit_data, Date_data, Enabled)
+VALUES (sensor_id, greenhouse_id, temperature_value, '°C', NOW(), 1);
 ```
 
-This will test all database connections, repositories, and provide statistics about your data.
+### Hardware Integration
 
-## Performance
+- Sensors identify themselves by `Id_sensor`
+- Data is automatically timestamped
+- Multiple data points per sensor supported
+- Real-time updates in dashboard
 
-- Optimized database queries
-- Efficient data aggregation
-- Real-time response caching
-- Minimal data transfer
-- Responsive UI updates
+## Contributing
+
+1. Follow SOLID principles and clean code practices
+2. Add JSDoc for TypeScript/JavaScript functions
+3. Use proper error handling and logging
+4. Test all CRUD operations thoroughly
+5. Maintain database integrity with proper constraints
+
+## Support
+
+For issues or questions:
+
+1. Check the test connection script: `/test_connection.php`
+2. Review error logs in browser console
+3. Verify database connectivity and permissions
+4. Ensure all required PHP extensions are installed
+
+## License
+
+This project is proprietary software for Thermeleon greenhouse management systems.

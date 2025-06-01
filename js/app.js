@@ -1,6 +1,7 @@
 // Global variables
 let temperatureChart = null;
 let selectedSensors = new Set();
+let includeWeatherData = false;
 
 // DOM elements - will be set when content is loaded
 let menuSelect = null;
@@ -10,6 +11,7 @@ let sensorDropdownMenu = null;
 let selectedPillsContainer = null;
 let chartContainer = null;
 let chartPlaceholder = null;
+let includeWeatherCheckbox = null;
 
 // API endpoints - using real API files
 const API_ENDPOINTS = {
@@ -28,6 +30,7 @@ function initializeGreenhouseTab() {
   selectedPillsContainer = document.getElementById("selectedPills");
   chartContainer = document.getElementById("chartContainer");
   chartPlaceholder = document.getElementById("chartPlaceholder");
+  includeWeatherCheckbox = document.getElementById("includeWeather");
 
   // Initialize chart display state properly
   initializeChartDisplay();
@@ -37,6 +40,9 @@ function initializeGreenhouseTab() {
 
   // Initialize export buttons
   initializeExportButtons();
+
+  // Initialize datepickers
+  initializeDatePickers();
 
   // Initialize functionality
   initializeEventListeners();
@@ -115,6 +121,13 @@ function initializeEventListeners() {
 
   if (endDateInput) {
     endDateInput.addEventListener("change", updateChart);
+  }
+
+  if (includeWeatherCheckbox) {
+    includeWeatherCheckbox.addEventListener("change", (e) => {
+      includeWeatherData = e.target.checked;
+      updateChart();
+    });
   }
 }
 
@@ -271,46 +284,69 @@ function removeSensor(sensorId) {
 }
 
 // Fetch data from server - updated to use new controller
-async function fetchData(greenhouseId, sensors, startDate, endDate) {
-  if (!greenhouseId || sensors.size === 0) {
+async function fetchData(
+  greenhouseId,
+  sensors,
+  startDate,
+  endDate,
+  includeWeather = false
+) {
+  if (!greenhouseId || (sensors.size === 0 && !includeWeather)) {
     return null;
   }
 
-  const sensorString = Array.from(sensors).join(",");
-  const params = new URLSearchParams();
-  params.append("sensors", sensorString);
-  if (startDate) params.append("start_date", startDate);
-  if (endDate) params.append("end_date", endDate);
-
-  const url = `${API_ENDPOINTS.DATA}?${params.toString()}`;
-
   try {
-    console.log("Fetching data from:", url);
-    const response = await fetch(url);
+    let sensorData = {};
+    let weatherData = null;
 
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+    // Fetch sensor data if sensors are selected
+    if (sensors.size > 0) {
+      const sensorString = Array.from(sensors).join(",");
+      const sensorParams = new URLSearchParams();
+      sensorParams.append("sensors", sensorString);
+      if (startDate) sensorParams.append("start_date", startDate);
+      if (endDate) sensorParams.append("end_date", endDate);
+
+      const sensorUrl = `${API_ENDPOINTS.DATA}?${sensorParams.toString()}`;
+      console.log("Fetching sensor data from:", sensorUrl);
+
+      const sensorResponse = await fetch(sensorUrl);
+      if (sensorResponse.ok) {
+        const responseText = await sensorResponse.text();
+        try {
+          sensorData = JSON.parse(responseText);
+        } catch (parseError) {
+          console.error("JSON parse error for sensor data:", parseError);
+        }
+      }
     }
 
-    const responseText = await response.text();
-    console.log("Raw response:", responseText.substring(0, 200));
+    // Fetch weather data if checkbox is checked
+    if (includeWeather) {
+      const weatherParams = new URLSearchParams();
+      weatherParams.append("weather", "1");
+      if (startDate) weatherParams.append("start_date", startDate);
+      if (endDate) weatherParams.append("end_date", endDate);
 
-    let data;
-    try {
-      data = JSON.parse(responseText);
-    } catch (parseError) {
-      console.error("JSON parse error:", parseError);
-      console.error("Response text:", responseText);
-      throw new Error("Invalid JSON response from server");
+      const weatherUrl = `${API_ENDPOINTS.DATA}?${weatherParams.toString()}`;
+      console.log("Fetching weather data from:", weatherUrl);
+
+      const weatherResponse = await fetch(weatherUrl);
+      if (weatherResponse.ok) {
+        const weatherResponseText = await weatherResponse.text();
+        try {
+          const weatherResult = JSON.parse(weatherResponseText);
+          weatherData = weatherResult.weather || null;
+        } catch (parseError) {
+          console.error("JSON parse error for weather data:", parseError);
+        }
+      }
     }
 
-    if (data.error) {
-      console.error("Server error:", data.error);
-      return null;
-    }
-
-    console.log("Parsed data:", data);
-    return data;
+    return {
+      sensors: sensorData,
+      weather: weatherData,
+    };
   } catch (error) {
     console.error("Error fetching data:", error);
     return null;
@@ -327,13 +363,22 @@ async function updateChart() {
   const endDate = endDateInput ? endDateInput.value : null;
 
   // Show/hide chart container and placeholder
-  if (!greenhouseId || sensors.size === 0) {
+  if (!greenhouseId || (sensors.size === 0 && !includeWeatherData)) {
     hideChart();
     return;
   }
 
-  const data = await fetchData(greenhouseId, sensors, startDate, endDate);
-  if (!data || Object.keys(data).length === 0) {
+  const data = await fetchData(
+    greenhouseId,
+    sensors,
+    startDate,
+    endDate,
+    includeWeatherData
+  );
+  if (
+    !data ||
+    (Object.keys(data.sensors || {}).length === 0 && !data.weather)
+  ) {
     hideChart();
     return;
   }
@@ -371,7 +416,7 @@ function renderChart(data) {
   const ctx = document.getElementById("temperatureChart");
   if (!ctx) return;
 
-  // Color palette for different sensors
+  // Color palette for different sensors and weather
   const colors = [
     "rgba(34, 197, 94, 0.8)", // green
     "rgba(59, 130, 246, 0.8)", // blue
@@ -383,42 +428,85 @@ function renderChart(data) {
     "rgba(156, 163, 175, 0.8)", // gray
   ];
 
+  const weatherColor = "rgba(0, 123, 255, 0.8)"; // blue for weather
+
   const datasets = [];
   let colorIndex = 0;
 
   // Process data for each selected sensor
-  for (const sensorId of selectedSensors) {
-    if (!data[sensorId] || !Array.isArray(data[sensorId])) continue;
+  if (data.sensors) {
+    for (const sensorId of selectedSensors) {
+      if (!data.sensors[sensorId] || !Array.isArray(data.sensors[sensorId]))
+        continue;
 
-    const sensorName = getSensorName(sensorId);
-    const points = data[sensorId].map((d) => ({
+      const sensorName = getSensorName(sensorId);
+      const points = data.sensors[sensorId].map((d) => ({
+        x: new Date(d.timestamp),
+        y: parseFloat(d.value) || 0,
+      }));
+
+      // Filter out invalid data points
+      const validPoints = points.filter(
+        (point) =>
+          point.x instanceof Date &&
+          !isNaN(point.x.getTime()) &&
+          !isNaN(point.y)
+      );
+
+      if (validPoints.length === 0) continue;
+
+      datasets.push({
+        label: sensorName,
+        data: validPoints,
+        borderColor: colors[colorIndex % colors.length],
+        backgroundColor: colors[colorIndex % colors.length].replace(
+          "0.8",
+          "0.1"
+        ),
+        fill: false,
+        tension: 0.4,
+        pointRadius: 3,
+        pointHoverRadius: 6,
+        borderWidth: 2,
+        pointBackgroundColor: colors[colorIndex % colors.length],
+        pointBorderColor: "#fff",
+        pointBorderWidth: 1,
+        yAxisID: "y",
+      });
+      colorIndex++;
+    }
+  }
+
+  // Add weather data if available
+  if (data.weather && Array.isArray(data.weather) && data.weather.length > 0) {
+    const weatherPoints = data.weather.map((d) => ({
       x: new Date(d.timestamp),
-      y: parseFloat(d.value) || 0,
+      y: parseFloat(d.temperature) || 0,
     }));
 
-    // Filter out invalid data points
-    const validPoints = points.filter(
+    const validWeatherPoints = weatherPoints.filter(
       (point) =>
         point.x instanceof Date && !isNaN(point.x.getTime()) && !isNaN(point.y)
     );
 
-    if (validPoints.length === 0) continue;
-
-    datasets.push({
-      label: sensorName,
-      data: validPoints,
-      borderColor: colors[colorIndex % colors.length],
-      backgroundColor: colors[colorIndex % colors.length].replace("0.8", "0.1"),
-      fill: false,
-      tension: 0.4,
-      pointRadius: 3,
-      pointHoverRadius: 6,
-      borderWidth: 2,
-      pointBackgroundColor: colors[colorIndex % colors.length],
-      pointBorderColor: "#fff",
-      pointBorderWidth: 1,
-    });
-    colorIndex++;
+    if (validWeatherPoints.length > 0) {
+      datasets.push({
+        label: "Outside Temperature",
+        data: validWeatherPoints,
+        borderColor: weatherColor,
+        backgroundColor: weatherColor.replace("0.8", "0.1"),
+        fill: false,
+        tension: 0.4,
+        pointRadius: 4,
+        pointHoverRadius: 7,
+        borderWidth: 3,
+        pointBackgroundColor: weatherColor,
+        pointBorderColor: "#fff",
+        pointBorderWidth: 2,
+        yAxisID: "y",
+        borderDash: [5, 5], // Dashed line for weather
+      });
+    }
   }
 
   if (datasets.length === 0) {
@@ -608,6 +696,123 @@ function handleExportDetailed(event) {
   if (!event.target.disabled) {
     exportData("detailed");
   }
+}
+
+// Initialize Air Datepickers with custom styling and options
+function initializeDatePickers() {
+  // Check if the input elements exist
+  const startDateElement = document.getElementById("startDate");
+  const endDateElement = document.getElementById("endDate");
+
+  if (!startDateElement || !endDateElement) {
+    console.warn(
+      "Date input elements not found, skipping datepicker initialization"
+    );
+    return;
+  }
+
+  // English locale object - using default English locale
+  const enLocale = {
+    days: [
+      "Sunday",
+      "Monday",
+      "Tuesday",
+      "Wednesday",
+      "Thursday",
+      "Friday",
+      "Saturday",
+    ],
+    daysShort: ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
+    daysMin: ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"],
+    months: [
+      "January",
+      "February",
+      "March",
+      "April",
+      "May",
+      "June",
+      "July",
+      "August",
+      "September",
+      "October",
+      "November",
+      "December",
+    ],
+    monthsShort: [
+      "Jan",
+      "Feb",
+      "Mar",
+      "Apr",
+      "May",
+      "Jun",
+      "Jul",
+      "Aug",
+      "Sep",
+      "Oct",
+      "Nov",
+      "Dec",
+    ],
+    today: "Today",
+    clear: "Clear",
+    dateFormat: "yyyy-MM-dd",
+    timeFormat: "HH:mm",
+    firstDay: 0,
+  };
+
+  // Common options for both date pickers
+  const datePickerOptions = {
+    locale: enLocale,
+    dateFormat: "yyyy-MM-dd",
+    autoClose: true,
+    position: "bottom left",
+    classes: "greenhouse-datepicker",
+    buttons: ["today", "clear"],
+    prevHtml:
+      '<svg class="w-4 h-4"><path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+    nextHtml:
+      '<svg class="w-4 h-4"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+    navTitles: {
+      days: "MMMM <i>yyyy</i>",
+      months: "yyyy",
+      years: "yyyy1 - yyyy2",
+    },
+    onSelect: function ({ date, formattedDate, datepicker }) {
+      // Update export buttons when date is selected
+      setTimeout(updateExportButtons, 100);
+    },
+  };
+
+  // Variables to store datepicker instances
+  let startDatePicker, endDatePicker;
+
+  // Initialize start date picker
+  startDatePicker = new AirDatepicker("#startDate", {
+    ...datePickerOptions,
+    onSelect: function ({ date, formattedDate, datepicker }) {
+      // Update export buttons when date is selected
+      setTimeout(updateExportButtons, 100);
+    },
+  });
+
+  // Initialize end date picker
+  endDatePicker = new AirDatepicker("#endDate", {
+    ...datePickerOptions,
+    onSelect: function ({ date, formattedDate, datepicker }) {
+      // Update export buttons when date is selected
+      setTimeout(updateExportButtons, 100);
+    },
+  });
+
+  // Set default date range (last 30 days)
+  const today = new Date();
+  const thirtyDaysAgo = new Date(today);
+  thirtyDaysAgo.setDate(today.getDate() - 30);
+
+  // Select dates after both pickers are initialized
+  setTimeout(() => {
+    startDatePicker.selectDate(thirtyDaysAgo);
+    endDatePicker.selectDate(today);
+  }, 100);
 }
 
 // Platform tab initialization

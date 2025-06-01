@@ -53,7 +53,18 @@ try {
 
 <!-- Selected Sensors Pills -->
 <div class="mb-6">
-    <h3 class="text-sm font-medium text-gray-700 mb-2">Selected Sensors</h3>
+    <div class="flex justify-between items-center mb-2">
+        <h3 class="text-sm font-medium text-gray-700">Selected Sensors</h3>
+        <div class="flex items-center">
+            <label class="flex items-center text-sm text-gray-600">
+                <input type="checkbox" id="includeWeather" class="mr-2 text-thermeleon-500 focus:ring-thermeleon-500 border-gray-300 rounded">
+                <svg class="w-4 h-4 mr-1 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 15a4 4 0 004 4h9a5 5 0 10-.1-9.999 5.002 5.002 0 10-9.78 2.096A4.004 4.004 0 003 15z"></path>
+                </svg>
+                Include Weather Data
+            </label>
+        </div>
+    </div>
     <div id="selectedPills" class="flex flex-wrap gap-2">
         <span class="text-gray-500 text-sm">No sensors selected</span>
     </div>
@@ -155,9 +166,6 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initially hide chart container and show placeholder
     chartContainer.style.display = 'none';
     chartPlaceholder.style.display = 'flex';
-    
-    // Initialize Air Datepickers
-    initializeDatePickers();
     
     // Setup dropdown functionality
     const dropdownBtn = document.getElementById('sensorDropdownBtn');
@@ -270,64 +278,5 @@ function closeNotificationModal() {
     document.getElementById('notificationModal').classList.add('hidden');
 }
 
-// Initialize Air Datepickers with custom styling and options
-function initializeDatePickers() {
-    // Common options for both date pickers
-    const datePickerOptions = {
-        dateFormat: 'yyyy-MM-dd',
-        autoClose: true,
-        position: 'bottom left',
-        classes: 'greenhouse-datepicker',
-        buttons: ['today', 'clear'],
-        prevHtml: '<svg class="w-4 h-4"><path d="M15 18l-6-6 6-6" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>',
-        nextHtml: '<svg class="w-4 h-4"><path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>',
-        navTitles: {
-            days: 'MMMM <i>yyyy</i>',
-            months: 'yyyy',
-            years: 'yyyy1 - yyyy2'
-        },
-        onSelect: function({date, formattedDate, datepicker}) {
-            // Update export buttons when date is selected
-            setTimeout(updateExportButtons, 100);
-        }
-    };
-    
-    // Initialize start date picker
-    const startDatePicker = new AirDatepicker('#startDate', {
-        ...datePickerOptions,
-        maxDate: new Date(), // Can't select future dates
-        onSelect: function({date, formattedDate, datepicker}) {
-            // Update end date picker's minDate when start date changes
-            if (date && endDatePicker) {
-                endDatePicker.update({
-                    minDate: date
-                });
-            }
-            setTimeout(updateExportButtons, 100);
-        }
-    });
-    
-    // Initialize end date picker
-    const endDatePicker = new AirDatepicker('#endDate', {
-        ...datePickerOptions,
-        maxDate: new Date(), // Can't select future dates
-        onSelect: function({date, formattedDate, datepicker}) {
-            // Update start date picker's maxDate when end date changes
-            if (date && startDatePicker) {
-                startDatePicker.update({
-                    maxDate: date
-                });
-            }
-            setTimeout(updateExportButtons, 100);
-        }
-    });
-    
-    // Set default date range (last 30 days)
-    const today = new Date();
-    const thirtyDaysAgo = new Date(today);
-    thirtyDaysAgo.setDate(today.getDate() - 30);
-    
-    startDatePicker.selectDate(thirtyDaysAgo);
-    endDatePicker.selectDate(today);
-}
+// Note: initializeDatePickers() is now handled by the main app.js file
 </script> 

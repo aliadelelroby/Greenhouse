@@ -389,6 +389,12 @@ ALTER TABLE `users`
   MODIFY `id_user` int(11) NOT NULL AUTO_INCREMENT;
 
 --
+-- AUTO_INCREMENT for table `weather`
+--
+ALTER TABLE `weather`
+  MODIFY `Id_data` int(11) NOT NULL AUTO_INCREMENT;
+
+--
 -- Constraints for dumped tables
 --
 
@@ -564,6 +570,42 @@ CROSS JOIN (
 WHERE s.Enabled = 1
 ORDER BY s.Id_sensor, timestamp_val;
 
+-- Generate sample weather data for the last 7 days
+-- Weather data with realistic patterns
+INSERT INTO `weather` (`Id_data`, `Date_data`, `Id_station`, `wind_direction`, `wind_speed`, `fog`, `cloud_cover`, `global_radiation`, `snow`, `sunshine_duration`, `temperature`, `dew_point`, `humidity`)
+SELECT 
+    (@row_number := @row_number + 1) as id_data,
+    UNIX_TIMESTAMP(DATE_SUB(NOW(), INTERVAL seq * 60 MINUTE)) as date_timestamp,
+    1 as station_id,
+    FLOOR(RAND() * 360) as wind_dir,
+    ROUND(2 + (RAND() * 15), 1) as wind_spd,
+    IF(RAND() < 0.1, 1, 0) as fog_present,
+    FLOOR(RAND() * 100) as clouds,
+    ROUND(100 + (RAND() * 900) + (SIN(HOUR(timestamp_val) * PI() / 12) * 400), 1) as radiation,
+    0 as snow_present,
+    FLOOR(RAND() * 60) as sunshine,
+    ROUND(15 + (RAND() * 20) + (SIN(HOUR(timestamp_val) * PI() / 12) * 8), 1) as temp,
+    ROUND(10 + (RAND() * 15) + (SIN(HOUR(timestamp_val) * PI() / 12) * 5), 1) as dew,
+    ROUND(40 + (RAND() * 50), 1) as humid
+FROM (
+    SELECT 
+        seq,
+        DATE_SUB(NOW(), INTERVAL seq * 60 MINUTE) as timestamp_val
+    FROM (
+        SELECT a.N + b.N * 10 + c.N * 100 as seq
+        FROM 
+            (SELECT 0 as N UNION SELECT 1 UNION SELECT 2 UNION SELECT 3 UNION SELECT 4 UNION SELECT 5 UNION SELECT 6 UNION SELECT 7 UNION SELECT 8 UNION SELECT 9) a
+        CROSS JOIN 
+            (SELECT 0 as N UNION SELECT 1 UNION SELECT 2 UNION SELECT 3 UNION SELECT 4 UNION SELECT 5 UNION SELECT 6 UNION SELECT 7 UNION SELECT 8 UNION SELECT 9) b
+        CROSS JOIN 
+            (SELECT 0 as N UNION SELECT 1) c
+        ORDER BY seq
+        LIMIT 168 -- 7 days * 24 hours (every hour)
+    ) numbers
+) timestamps
+CROSS JOIN (SELECT @row_number := 0) r
+ORDER BY seq;
+
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
@@ -596,6 +638,11 @@ SELECT
     'Users (uppercase)' as Entity, 
     COUNT(*) as Count 
 FROM user
+UNION ALL
+SELECT 
+    'Weather Records' as Entity, 
+    COUNT(*) as Count 
+FROM weather
 UNION ALL
 SELECT 
     'Companies (lowercase)' as Entity, 

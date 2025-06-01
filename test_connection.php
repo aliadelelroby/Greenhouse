@@ -1,100 +1,83 @@
 <?php
 /**
- * Test script to verify database connection and schema compatibility
+ * Simple test script to verify database connection and new functionality
  */
 
-require_once 'config/Database.php';
-require_once 'repositories/GreenhouseRepository.php';
-require_once 'repositories/SensorRepository.php';
-require_once 'repositories/DataRepository.php';
-require_once 'repositories/UserRepository.php';
-
-echo "<h1>Database Connection Test</h1>\n";
+require_once __DIR__ . '/config/Database.php';
+require_once __DIR__ . '/repositories/DataRepository.php';
+require_once __DIR__ . '/repositories/GreenhouseRepository.php';
+require_once __DIR__ . '/repositories/SensorRepository.php';
+require_once __DIR__ . '/services/ResponseService.php';
 
 try {
-    // Test database connection
-    echo "<h2>Testing Database Connection...</h2>\n";
-    $database = Database::getInstance();
-    $connection = $database->getConnection();
-    echo "✅ Database connection successful!\n<br>";
+    echo "<h1>Database Connection Test</h1>";
     
-    // Test Greenhouse Repository
-    echo "<h2>Testing Greenhouse Repository...</h2>\n";
-    $greenhouseRepo = new GreenhouseRepository($database);
-    $greenhouses = $greenhouseRepo->findAll();
-    echo "✅ Found " . count($greenhouses) . " greenhouses\n<br>";
+    // Test database connection
+    $database = Database::getInstance();
+    echo "<p>✅ Database connection successful!</p>";
+    
+    // Test repositories
+    $dataRepository = new DataRepository($database);
+    $greenhouseRepository = new GreenhouseRepository($database);
+    $sensorRepository = new SensorRepository($database);
+    
+    echo "<h2>Repository Tests</h2>";
+    
+    // Test greenhouse repository
+    $greenhouses = $greenhouseRepository->findAll();
+    echo "<p>✅ Found " . count($greenhouses) . " greenhouses</p>";
     
     if (!empty($greenhouses)) {
-        echo "Sample greenhouse: " . $greenhouses[0]['Name_greenhouse'] . "\n<br>";
+        echo "<ul>";
+        foreach ($greenhouses as $greenhouse) {
+            echo "<li>ID: {$greenhouse['Id_greenhouse']}, Name: {$greenhouse['Name_greenhouse']}</li>";
+        }
+        echo "</ul>";
     }
     
-    // Test Sensor Repository
-    echo "<h2>Testing Sensor Repository...</h2>\n";
-    $sensorRepo = new SensorRepository($database);
+    // Test sensor repository
+    $sensors = $sensorRepository->findAll();
+    echo "<p>✅ Found " . count($sensors) . " sensors</p>";
     
+    // Test sensor data for first greenhouse
     if (!empty($greenhouses)) {
-        $sensors = $sensorRepo->findByGreenhouseId($greenhouses[0]['Id_greenhouse']);
-        echo "✅ Found " . count($sensors) . " sensors in first greenhouse\n<br>";
+        $firstGreenhouse = $greenhouses[0]['Id_greenhouse'];
+        $sensors = $sensorRepository->findByGreenhouseId($firstGreenhouse);
+        echo "<p>✅ Greenhouse {$firstGreenhouse} has " . count($sensors) . " sensors</p>";
         
         if (!empty($sensors)) {
-            echo "Sample sensor: " . $sensors[0]['name_sensor'] . "\n<br>";
+            // Test data retrieval
+            $sensorIds = array_slice(array_column($sensors, 'id_sensor'), 0, 5); // First 5 sensors
+            $data = $dataRepository->findBySensorIds($sensorIds);
+            echo "<p>✅ Retrieved data for " . count($data) . " sensors</p>";
         }
     }
     
-    // Test Data Repository
-    echo "<h2>Testing Data Repository...</h2>\n";
-    $dataRepo = new DataRepository($database);
+    // Test weather data
+    echo "<h2>Weather Data Test</h2>";
+    $weatherData = $dataRepository->findWeatherData();
+    echo "<p>✅ Found " . count($weatherData) . " weather records</p>";
     
-    if (!empty($sensors)) {
-        $sensorIds = array_slice(array_column($sensors, 'id_sensor'), 0, 2); // Test with first 2 sensors
-        $data = $dataRepo->findBySensorIds($sensorIds, null, null);
-        echo "✅ Found data for " . count($data) . " sensors\n<br>";
-        
-        $totalDataPoints = 0;
-        foreach ($data as $sensorData) {
-            $totalDataPoints += count($sensorData);
-        }
-        echo "Total data points: " . $totalDataPoints . "\n<br>";
+    if (!empty($weatherData)) {
+        $latest = $weatherData[0];
+        echo "<p>Latest weather: {$latest['temperature']}°C, {$latest['humidity']}% humidity at {$latest['timestamp']}</p>";
     }
     
-    // Test User Repository
-    echo "<h2>Testing User Repository...</h2>\n";
-    $userRepo = new UserRepository($database);
-    $userRepo->initializeTables(); // Initialize if needed
+    // Test statistics
+    echo "<h2>Statistics</h2>";
+    $greenhouseStats = $greenhouseRepository->getStatistics();
+    $sensorStats = $sensorRepository->getStatistics();
     
-    $users = $userRepo->findAllUsers();
-    $companies = $userRepo->findAllCompanies();
-    $positions = $userRepo->findAllPositions();
+    echo "<p>Total Greenhouses: {$greenhouseStats['total_greenhouses']}</p>";
+    echo "<p>Total Sensors: {$greenhouseStats['total_sensors']}</p>";
+    echo "<p>Enabled Sensors: {$sensorStats['enabled_sensors']}</p>";
+    echo "<p>Disabled Sensors: {$sensorStats['disabled_sensors']}</p>";
     
-    echo "✅ Found " . count($users) . " users\n<br>";
-    echo "✅ Found " . count($companies) . " companies\n<br>";
-    echo "✅ Found " . count($positions) . " positions\n<br>";
-    
-    // Test database statistics
-    echo "<h2>Database Statistics...</h2>\n";
-    $result = $connection->query("SELECT COUNT(*) as count FROM greenhouse");
-    $totalGreenhouses = $result ? $result->fetch_assoc()['count'] : 0;
-    
-    $result = $connection->query("SELECT COUNT(*) as count FROM sensor WHERE Enabled = 1");
-    $totalSensors = $result ? $result->fetch_assoc()['count'] : 0;
-    
-    $result = $connection->query("SELECT COUNT(*) as count FROM data");
-    $totalDataPoints = $result ? $result->fetch_assoc()['count'] : 0;
-    
-    echo "📊 Total Greenhouses: " . $totalGreenhouses . "\n<br>";
-    echo "📊 Total Active Sensors: " . $totalSensors . "\n<br>";
-    echo "📊 Total Data Points: " . $totalDataPoints . "\n<br>";
-    
-    // Test recent data
-    $result = $connection->query("SELECT COUNT(*) as count FROM data WHERE DATE(Date_data) = CURDATE()");
-    $todayDataPoints = $result ? $result->fetch_assoc()['count'] : 0;
-    echo "📊 Data Points Today: " . $todayDataPoints . "\n<br>";
-    
-    echo "\n<h2>🎉 All tests passed! The application is ready to use.</h2>\n";
-    echo "<a href='index.php'>Go to Dashboard</a>\n";
+    echo "<h2>✅ All tests passed successfully!</h2>";
     
 } catch (Exception $e) {
-    echo "❌ Error: " . $e->getMessage() . "\n<br>";
-    echo "Stack trace: " . $e->getTraceAsString() . "\n";
+    echo "<h2>❌ Error: " . htmlspecialchars($e->getMessage()) . "</h2>";
+    echo "<p>Stack trace:</p>";
+    echo "<pre>" . htmlspecialchars($e->getTraceAsString()) . "</pre>";
 }
 ?> 

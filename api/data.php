@@ -12,7 +12,21 @@ header('Access-Control-Allow-Headers: Content-Type');
 require_once __DIR__ . '/../controllers/DataController.php';
 
 try {
-    // Instantiate dependencies
+    // Check if weather data is requested
+    if (isset($_GET['weather'])) {
+        $database = Database::getInstance();
+        $dataRepository = new DataRepository($database);
+        $responseService = new ResponseService();
+        
+        $startDate = $_GET['start_date'] ?? null;
+        $endDate = $_GET['end_date'] ?? null;
+        
+        $weatherData = $dataRepository->findWeatherData($startDate, $endDate);
+        $responseService->jsonResponse(['weather' => $weatherData]);
+        return;
+    }
+    
+    // Instantiate dependencies for regular sensor data
     $database = Database::getInstance();
     $dataRepository = new DataRepository($database);
     $responseService = new ResponseService();
