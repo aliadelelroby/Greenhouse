@@ -64,7 +64,7 @@ class ExportService
             if ($sensor) {
                 $sensorInfo[$sensorId] = [
                     'name' => $sensor['name_sensor'],
-                    'unit' => $sensor['unit_measurement']
+                    'unit' => '°C' // Default unit since unit_measurement doesn't exist in schema
                 ];
             }
         }

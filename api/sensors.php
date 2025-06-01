@@ -24,6 +24,17 @@ try {
         return;
     }
     
+    // Check if all sensors are requested
+    if (isset($_GET['all'])) {
+        $database = Database::getInstance();
+        $sensorRepository = new SensorRepository($database);
+        $responseService = new ResponseService();
+        
+        $sensors = $sensorRepository->findAll();
+        $responseService->jsonResponse($sensors);
+        return;
+    }
+    
     // Check if we have required parameters for sensor operations
     $greenhouseId = $_GET['id'] ?? null;
     $sensorId = $_GET['id_sensor'] ?? null;

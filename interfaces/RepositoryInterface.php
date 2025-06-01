@@ -8,6 +8,7 @@ interface SensorRepositoryInterface
 {
     public function findByGreenhouseId(int $greenhouseId): array;
     public function findById(int $sensorId): ?array;
+    public function findAll(): array;
 }
 
 interface GreenhouseRepositoryInterface

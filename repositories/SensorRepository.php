@@ -19,10 +19,9 @@ class SensorRepository implements SensorRepositoryInterface
     
     public function findByGreenhouseId(int $greenhouseId): array
     {
-        $sql = "SELECT s.Id_sensor, s.Name_sensor, st.unit_measurement 
+        $sql = "SELECT s.Id_sensor, s.Name_sensor, s.Description, s.Enabled
                 FROM sensor s 
-                LEFT JOIN sensor_types st ON s.id_sensor_type = st.id_sensor_type 
-                WHERE s.Id_greenhouse = ?";
+                WHERE s.Id_greenhouse = ? AND s.Enabled = 1";
         
         $stmt = $this->connection->prepare($sql);
         if (!$stmt) {
@@ -38,7 +37,8 @@ class SensorRepository implements SensorRepositoryInterface
             $sensors[] = [
                 'id_sensor' => (int)$row['Id_sensor'],
                 'name_sensor' => $row['Name_sensor'],
-                'unit_measurement' => $row['unit_measurement'] ?? '°C',
+                'description' => $row['Description'],
+                'enabled' => (int)$row['Enabled'],
                 // Backward compatibility
                 'id' => (int)$row['Id_sensor'],
                 'name' => $row['Name_sensor']
@@ -51,10 +51,9 @@ class SensorRepository implements SensorRepositoryInterface
     
     public function findById(int $sensorId): ?array
     {
-        $sql = "SELECT s.Id_sensor, s.Name_sensor, st.unit_measurement 
+        $sql = "SELECT s.Id_sensor, s.Name_sensor, s.Description, s.Enabled
                 FROM sensor s 
-                LEFT JOIN sensor_types st ON s.id_sensor_type = st.id_sensor_type 
-                WHERE s.Id_sensor = ?";
+                WHERE s.Id_sensor = ? AND s.Enabled = 1";
         
         $stmt = $this->connection->prepare($sql);
         if (!$stmt) {
@@ -75,10 +74,40 @@ class SensorRepository implements SensorRepositoryInterface
         return [
             'id_sensor' => (int)$sensor['Id_sensor'],
             'name_sensor' => $sensor['Name_sensor'],
-            'unit_measurement' => $sensor['unit_measurement'] ?? '°C',
+            'description' => $sensor['Description'],
+            'enabled' => (int)$sensor['Enabled'],
             // Backward compatibility
             'id' => (int)$sensor['Id_sensor'],
             'name' => $sensor['Name_sensor']
         ];
+    }
+    
+    public function findAll(): array
+    {
+        $sql = "SELECT s.Id_sensor, s.Name_sensor, s.Description, s.Enabled, s.Id_greenhouse
+                FROM sensor s 
+                WHERE s.Enabled = 1
+                ORDER BY s.Name_sensor";
+        
+        $result = $this->connection->query($sql);
+        if (!$result) {
+            throw new RuntimeException("Failed to execute sensor query: " . $this->connection->error);
+        }
+        
+        $sensors = [];
+        while ($row = $result->fetch_assoc()) {
+            $sensors[] = [
+                'id_sensor' => (int)$row['Id_sensor'],
+                'name_sensor' => $row['Name_sensor'],
+                'description' => $row['Description'],
+                'enabled' => (int)$row['Enabled'],
+                'id_greenhouse' => (int)$row['Id_greenhouse'],
+                // Backward compatibility
+                'id' => (int)$row['Id_sensor'],
+                'name' => $row['Name_sensor']
+            ];
+        }
+        
+        return $sensors;
     }
 } 

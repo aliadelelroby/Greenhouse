@@ -29,7 +29,7 @@ class DataRepository implements DataRepositoryInterface
                     Id_sensor,
                     AVG(Value_data) as value
                 FROM data 
-                WHERE Id_sensor IN ($placeholders)";
+                WHERE Id_sensor IN ($placeholders) AND Enabled = 1";
         
         $params = $sensorIds;
         $types = str_repeat('i', count($sensorIds));
@@ -63,7 +63,7 @@ class DataRepository implements DataRepositoryInterface
                     Id_sensor,
                     AVG(Value_data) as avg_value
                 FROM data 
-                WHERE Id_sensor IN ($placeholders)";
+                WHERE Id_sensor IN ($placeholders) AND Enabled = 1";
         
         $params = $sensorIds;
         $types = str_repeat('i', count($sensorIds));

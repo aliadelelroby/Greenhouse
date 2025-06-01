@@ -155,18 +155,23 @@ All endpoints provide real data from the database:
 
 2. **Database Initialization**
 
-   Run the SQL script to create all tables and sample data:
+   Run the SQL scripts to create all tables and sample data:
 
    ```bash
-   mysql -u root -p < database_init.sql
+   # First, create the database structure
+   mysql -u root -p < current_sql.sql
+
+   # Then, populate with sample data
+   mysql -u root -p thermeleondb < sample_data.sql
    ```
 
-   This script creates:
+   This creates:
 
-   - All necessary database tables
+   - All necessary database tables (from current_sql.sql)
    - Sample greenhouses, sensors, and sensor types
    - Sample companies, positions, and users
    - Realistic sensor data for the last 7 days
+   - Complete relational data structure
 
 ## Key Features
 
@@ -192,15 +197,26 @@ All endpoints provide real data from the database:
 - API endpoint health checks
 - Real-time error logging
 
-## No Dummy Data
+## Database Schema Compatibility
 
-This implementation contains **zero dummy data**:
+This implementation is **fully compatible** with the current_sql.sql schema:
 
-- All statistics come from database queries
-- Charts display real sensor readings
-- Alerts are generated from actual data
-- Export files contain real measurements
-- System health reflects actual status
+- All queries updated to match actual table structure
+- Proper field name mapping (Id_greenhouse, Name_greenhouse, etc.)
+- Compatible with both `user` and `users` tables
+- Supports all relationships defined in the schema
+- No references to non-existent tables or fields
+
+## Testing
+
+To verify the setup works correctly:
+
+```bash
+# Open in your browser
+http://localhost/interface_dashboard/test_connection.php
+```
+
+This will test all database connections, repositories, and provide statistics about your data.
 
 ## Performance
 

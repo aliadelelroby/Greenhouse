@@ -20,7 +20,7 @@ try {
     $responseService = new ResponseService();
     
     // Create and execute controller
-    $controller = new ExportController($exportService, $responseService);
+    $controller = new ExportController($exportService, $responseService, $sensorRepository);
     $controller->exportData();
     
 } catch (Exception $e) {

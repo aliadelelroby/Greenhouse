@@ -30,10 +30,11 @@ try {
     $recentActivityQuery = "
         SELECT 
             'data' as type,
-            CONCAT('Data recorded from sensor ID ', s.Name_sensor) as activity,
+            CONCAT('Data recorded from sensor: ', COALESCE(s.Name_sensor, 'Unknown')) as activity,
             d.Date_data as timestamp
         FROM data d
         LEFT JOIN sensor s ON d.Id_sensor = s.Id_sensor
+        WHERE d.Enabled = 1
         ORDER BY d.Date_data DESC
         LIMIT 10
     ";
@@ -167,7 +168,7 @@ try {
                     <span class="text-sm text-gray-600">Data Points Today</span>
                     <span class="text-lg font-semibold text-gray-900" id="dataPointsToday">
                         <?php
-                        $result = $connection->query("SELECT COUNT(*) as count FROM data WHERE DATE(Date_data) = CURDATE()");
+                        $result = $connection->query("SELECT COUNT(*) as count FROM data WHERE DATE(Date_data) = CURDATE() AND Enabled = 1");
                         echo $result ? $result->fetch_assoc()['count'] : 0;
                         ?>
                     </span>
@@ -395,7 +396,7 @@ async function loadSystemData() {
                     type: 'greenhouse',
                     id: greenhouse.id || greenhouse.Id_greenhouse,
                     name: greenhouse.name || greenhouse.Name_greenhouse,
-                    details: `Location: ${greenhouse.location || greenhouse.Location_greenhouse || 'N/A'}`,
+                    details: `Company ID: ${greenhouse.Id_company || 'N/A'} | Size: ${greenhouse.X_max || 'N/A'}x${greenhouse.Y_max || 'N/A'}`,
                     status: 'Active',
                     lastUpdated: greenhouse.created_at || new Date().toISOString()
                 });
@@ -409,9 +410,9 @@ async function loadSystemData() {
                     type: 'sensor',
                     id: sensor.id || sensor.Id_sensor,
                     name: sensor.name || sensor.Name_sensor,
-                    details: `Type: ${sensor.type || sensor.Type_sensor || 'Temperature'}`,
-                    status: 'Active',
-                    lastUpdated: sensor.created_at || new Date().toISOString()
+                    details: `Description: ${sensor.description || sensor.Description || 'N/A'} | Greenhouse: ${sensor.Id_greenhouse || 'N/A'}`,
+                    status: sensor.enabled || sensor.Enabled ? 'Active' : 'Inactive',
+                    lastUpdated: sensor.Last_update || sensor.created_at || new Date().toISOString()
                 });
             });
         }

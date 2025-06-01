@@ -20,11 +20,13 @@ class ExportController
 {
     private ExportService $exportService;
     private ResponseService $responseService;
+    private ?SensorRepositoryInterface $sensorRepository;
     
-    public function __construct(ExportService $exportService, ResponseService $responseService)
+    public function __construct(ExportService $exportService, ResponseService $responseService, ?SensorRepositoryInterface $sensorRepository = null)
     {
         $this->exportService = $exportService;
         $this->responseService = $responseService;
+        $this->sensorRepository = $sensorRepository;
     }
     
     public function exportData(): void
@@ -35,8 +37,21 @@ class ExportController
             $type = $_GET['type'] ?? 'quick';
             $startDate = $_GET['start_date'] ?? null;
             $endDate = $_GET['end_date'] ?? null;
+            $all = isset($_GET['all']);
             
-            $sensorIds = $this->parseSensorIds($sensors);
+            // If 'all' parameter is provided, get all sensor IDs
+            if ($all) {
+                if (!$this->sensorRepository) {
+                    $database = Database::getInstance();
+                    $this->sensorRepository = new SensorRepository($database);
+                }
+                $allSensors = $this->sensorRepository->findAll();
+                $sensorIds = array_map(function($sensor) {
+                    return $sensor['id_sensor'] ?? $sensor['Id_sensor'];
+                }, $allSensors);
+            } else {
+                $sensorIds = $this->parseSensorIds($sensors);
+            }
             
             if (empty($sensorIds)) {
                 $this->responseService->errorResponse("No valid sensor IDs provided", 400);

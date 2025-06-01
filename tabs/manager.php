@@ -43,7 +43,9 @@ try {
         FROM data d
         LEFT JOIN sensor s ON d.Id_sensor = s.Id_sensor
         LEFT JOIN greenhouse g ON s.Id_greenhouse = g.Id_greenhouse
-        WHERE d.Value_data > 30 OR d.Value_data < 5
+        WHERE (d.Value_data > 30 OR d.Value_data < 5) 
+        AND d.Enabled = 1 
+        AND s.Enabled = 1
         ORDER BY d.Date_data DESC
         LIMIT 5
     ";
