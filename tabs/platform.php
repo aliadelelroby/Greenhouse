@@ -1,13 +1,30 @@
-<h2 class="text-2xl font-bold text-gray-900 mb-6">Platform Manager</h2>
-
 <?php
-// Connect to real data
+session_start();
+
+// Permission check - only admins can access platform management
 require_once __DIR__ . '/../config/Database.php';
+require_once __DIR__ . '/../services/PermissionService.php';
 require_once __DIR__ . '/../repositories/GreenhouseRepository.php';
 require_once __DIR__ . '/../repositories/UserRepository.php';
 
 try {
     $database = Database::getInstance();
+    $permissionService = new PermissionService($database);
+    
+    // Check if user can access platform management
+    if (!$permissionService->canAccessPlatformManagement()) {
+        header('HTTP/1.1 403 Forbidden');
+        echo '<div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">';
+        echo '<div class="flex items-center">';
+        echo '<svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">';
+        echo '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"></path>';
+        echo '</svg>';
+        echo '<strong>Access Denied:</strong> ' . $permissionService->getPermissionErrorMessage('access platform management');
+        echo '</div>';
+        echo '</div>';
+        return;
+    }
+    
     $userRepository = new UserRepository($database);
     
     // Initialize user tables if they don't exist
@@ -15,6 +32,11 @@ try {
     
     // Get real statistics from database
     $connection = $database->getConnection();
+?>
+
+<h2 class="text-2xl font-bold text-gray-900 mb-6">Platform Manager</h2>
+
+<?php
     
     // Count actual data
     $result = $connection->query("SELECT COUNT(*) as count FROM greenhouse");
@@ -109,12 +131,14 @@ try {
                         <input type="text" id="searchInput" placeholder="Search entities..." class="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white hover:border-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors min-w-[200px]">
                     </div>
                 </div>
+                <?php if ($permissionService->canCreateEntities()): ?>
                 <button onclick="showAddEntityModal()" class="px-6 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors duration-200 text-sm font-medium shadow-sm flex items-center justify-center">
                     <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
                     </svg>
                     Add New Entity
                 </button>
+                <?php endif; ?>
             </div>
         </div>
         
@@ -249,27 +273,34 @@ try {
                 <h3 class="text-lg font-semibold text-gray-900">Quick Actions</h3>
             </div>
             <div class="p-6 space-y-3 flex-1">
+                <?php if ($permissionService->canPerformSystemOperations()): ?>
                 <button onclick="performBackup()" class="w-full flex items-center px-4 py-3 text-left bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors duration-200 text-sm">
                     <svg class="w-4 h-4 text-gray-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4"></path>
                     </svg>
                     Database Backup
                 </button>
+                <?php endif; ?>
                 
+                <?php if ($permissionService->canViewSystemStats()): ?>
                 <button onclick="checkSystemHealth()" class="w-full flex items-center px-4 py-3 text-left bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors duration-200 text-sm">
                     <svg class="w-4 h-4 text-gray-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
                     </svg>
                     System Health Check
                 </button>
+                <?php endif; ?>
                 
+                <?php if ($permissionService->canPerformSystemOperations()): ?>
                 <button onclick="exportSystemLogs()" class="w-full flex items-center px-4 py-3 text-left bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors duration-200 text-sm">
                     <svg class="w-4 h-4 text-gray-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 4H6a2 2 0 00-2 2v12a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-2m-4-1v8m0 0l3-3m-3 3L9 8m-5 5h2.586a1 1 0 01.707.293l2.414 2.414a1 1 0 00.707.293H10"></path>
                     </svg>
                     Export System Logs
                 </button>
+                <?php endif; ?>
                 
+                <?php if ($permissionService->canModifySystemSettings()): ?>
                 <button onclick="manageSettings()" class="w-full flex items-center px-4 py-3 text-left bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors duration-200 text-sm">
                     <svg class="w-4 h-4 text-gray-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path>
@@ -277,6 +308,16 @@ try {
                     </svg>
                     System Settings
                 </button>
+                <?php endif; ?>
+                
+                <?php if (!$permissionService->canPerformSystemOperations() && !$permissionService->canViewSystemStats() && !$permissionService->canModifySystemSettings()): ?>
+                <div class="text-center text-gray-500 py-4">
+                    <svg class="w-8 h-8 mx-auto mb-2 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+                    </svg>
+                    <p class="text-sm">Limited access</p>
+                </div>
+                <?php endif; ?>
             </div>
         </div>
     </div>
@@ -338,6 +379,33 @@ try {
                     </div>
                     
                     <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Username/Login:</label>
+                        <input type="text" id="entityLogin" class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white hover:border-gray-400 focus:ring-2 focus:ring-thermeleon-500 focus:border-thermeleon-500 transition-colors">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Password:</label>
+                        <div class="relative">
+                            <input type="password" id="entityPassword" class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white hover:border-gray-400 focus:ring-2 focus:ring-thermeleon-500 focus:border-thermeleon-500 transition-colors pr-10">
+                            <button type="button" onclick="toggleModalPassword()" class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                                <svg id="modalEyeIcon" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">User Type:</label>
+                        <select id="entityUserType" class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white hover:border-gray-400 focus:ring-2 focus:ring-thermeleon-500 focus:border-thermeleon-500 transition-colors">
+                            <option value="0">Regular User</option>
+                            <option value="1">Administrator</option>
+                            <option value="2">Super Admin</option>
+                        </select>
+                    </div>
+                    
+                    <div>
                         <label class="block text-sm font-medium text-gray-700 mb-2">Company:</label>
                         <select id="entityCompany" class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white hover:border-gray-400 focus:ring-2 focus:ring-thermeleon-500 focus:border-thermeleon-500 transition-colors">
                             <option value="">Select a company...</option>
@@ -365,7 +433,73 @@ try {
     </div>
 </div>
 
+<!-- Change Password Modal -->
+<div id="changePasswordModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden z-50">
+    <div class="flex items-center justify-center min-h-screen p-4">
+        <div class="bg-white rounded-lg shadow-xl max-w-md w-full">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h3 class="text-lg font-semibold text-gray-900">Change Password</h3>
+            </div>
+            <form id="changePasswordForm" class="p-6">
+                <input type="hidden" id="changePasswordUserId" value="">
+                <input type="hidden" id="changePasswordUserLogin" value="">
+                
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">User:</label>
+                    <input type="text" id="changePasswordUserName" readonly class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-600">
+                </div>
+                
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">New Password:</label>
+                    <div class="relative">
+                        <input type="password" id="newPassword" class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white hover:border-gray-400 focus:ring-2 focus:ring-thermeleon-500 focus:border-thermeleon-500 transition-colors pr-10" required>
+                        <button type="button" onclick="toggleNewPassword()" class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                            <svg id="newPasswordEyeIcon" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Confirm Password:</label>
+                    <div class="relative">
+                        <input type="password" id="confirmPassword" class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white hover:border-gray-400 focus:ring-2 focus:ring-thermeleon-500 focus:border-thermeleon-500 transition-colors pr-10" required>
+                        <button type="button" onclick="toggleConfirmPassword()" class="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                            <svg id="confirmPasswordEyeIcon" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="flex justify-end space-x-3 mt-6">
+                    <button type="button" onclick="closeChangePasswordModal()" class="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50">
+                        Cancel
+                    </button>
+                    <button type="submit" class="px-4 py-2 bg-thermeleon-500 text-white rounded-lg hover:bg-thermeleon-600">
+                        Change Password
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <script>
+// Pass PHP permission data to JavaScript
+window.platformPermissions = {
+    canCreateEntities: <?php echo $permissionService->canCreateEntities() ? 'true' : 'false'; ?>,
+    canDeleteEntities: <?php echo $permissionService->canDeleteEntities() ? 'true' : 'false'; ?>,
+    canChangeUserPasswords: <?php echo $permissionService->canChangeUserPasswords() ? 'true' : 'false'; ?>,
+    canResetPasswords: <?php echo $permissionService->canResetPasswords() ? 'true' : 'false'; ?>,
+    canManageUsers: <?php echo $permissionService->canManageUsers() ? 'true' : 'false'; ?>,
+    isAdmin: <?php echo $permissionService->isAdmin() ? 'true' : 'false'; ?>,
+    isSuperAdmin: <?php echo $permissionService->isSuperAdmin() ? 'true' : 'false'; ?>
+};
+
 class PlatformManager {
     constructor() {
         this.entities = [];
@@ -376,6 +510,7 @@ class PlatformManager {
         this.cacheTimeout = 5 * 60 * 1000; // 5 minutes
         this.companies = [];
         this.positions = [];
+        this.permissions = window.platformPermissions;
         
         this.initializeFilters();
         this.setupEventListeners();
@@ -669,10 +804,17 @@ class PlatformManager {
             </td>
             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                     <button onclick="platformManager.viewEntity('${entity.type}', '${entity.id}')" class="text-thermeleon-600 hover:text-thermeleon-900 mr-3">View</button>
-                ${['user', 'company', 'position'].includes(entity.type) ? 
+                ${entity.type === 'user' && this.permissions.canManageUsers ? 
+                        `${this.permissions.canChangeUserPasswords ? `<button onclick="platformManager.changePassword('${entity.id}', '${entity.name}')" class="text-purple-600 hover:text-purple-900 mr-3">Change Password</button>` : ''}
+                         ${this.permissions.canResetPasswords ? `<button onclick="platformManager.resetPassword('${entity.id}', '${entity.name}')" class="text-orange-600 hover:text-orange-900 mr-3">Reset Password</button>` : ''}
+                         <button onclick="platformManager.toggleEntityStatus('${entity.type}', '${entity.id}', '${entity.status}')" class="text-blue-600 hover:text-blue-900 mr-3">${entity.status === 'Active' ? 'Deactivate' : 'Activate'}</button>
+                         ${this.permissions.canDeleteEntities ? `<button onclick="platformManager.deleteEntity('${entity.type}', '${entity.id}')" class="text-red-600 hover:text-red-900">Delete</button>` : ''}` :
+                    ['company', 'position'].includes(entity.type) && this.permissions.canManageUsers ?
                         `<button onclick="platformManager.toggleEntityStatus('${entity.type}', '${entity.id}', '${entity.status}')" class="text-blue-600 hover:text-blue-900 mr-3">${entity.status === 'Active' ? 'Deactivate' : 'Activate'}</button>
-                         <button onclick="platformManager.deleteEntity('${entity.type}', '${entity.id}')" class="text-red-600 hover:text-red-900">Delete</button>` :
-                        `<button onclick="platformManager.editEntity('${entity.type}', '${entity.id}')" class="text-indigo-600 hover:text-indigo-900">Edit</button>`
+                         ${this.permissions.canDeleteEntities ? `<button onclick="platformManager.deleteEntity('${entity.type}', '${entity.id}')" class="text-red-600 hover:text-red-900">Delete</button>` : ''}` :
+                        entity.type === 'user' || ['company', 'position'].includes(entity.type) ?
+                            '<span class="text-gray-400 text-sm">Limited access</span>' :
+                            `<button onclick="platformManager.editEntity('${entity.type}', '${entity.id}')" class="text-indigo-600 hover:text-indigo-900">Edit</button>`
                 }
             </td>
         </tr>
@@ -752,6 +894,11 @@ class PlatformManager {
         if (addEntityForm) {
             addEntityForm.addEventListener('submit', (e) => this.handleAddEntity(e));
         }
+
+        const changePasswordForm = document.getElementById('changePasswordForm');
+        if (changePasswordForm) {
+            changePasswordForm.addEventListener('submit', (e) => this.handleChangePassword(e));
+        }
     }
 
     // Entity management methods
@@ -764,6 +911,11 @@ class PlatformManager {
     }
 
     async showAddEntityModal() {
+        if (!this.permissions.canCreateEntities) {
+            showErrorNotification('You do not have permission to create entities', 'Access Denied');
+            return;
+        }
+        
     const modal = document.getElementById('addEntityModal');
     modal.classList.remove('hidden');
     
@@ -837,6 +989,11 @@ class PlatformManager {
 }
 
     async toggleEntityStatus(type, id, currentStatus) {
+        if (!this.permissions.canManageUsers) {
+            showErrorNotification('You do not have permission to modify entity status', 'Access Denied');
+            return;
+        }
+        
     const newStatus = currentStatus === 'Active' ? 'inactive' : 'active';
     
     try {
@@ -869,6 +1026,11 @@ class PlatformManager {
 }
 
     async deleteEntity(type, id) {
+        if (!this.permissions.canDeleteEntities) {
+            showErrorNotification('You do not have permission to delete entities', 'Access Denied');
+            return;
+        }
+        
     const confirmed = await showConfirmDialog(`Are you sure you want to delete this ${type}?`, null, 'Delete Confirmation');
     if (!confirmed) {
         return;
@@ -908,10 +1070,16 @@ class PlatformManager {
     
     if (type === 'user') {
         const email = document.getElementById('entityEmail').value;
+        const login = document.getElementById('entityLogin').value;
+        const password = document.getElementById('entityPassword').value;
+        const userType = document.getElementById('entityUserType').value;
         const companyId = document.getElementById('entityCompany').value;
         const positionId = document.getElementById('entityPosition').value;
         
         data.email = email;
+        data.login = login;
+        data.password = password;
+        data.user_type = parseInt(userType);
         if (companyId) data.company_id = parseInt(companyId);
         if (positionId) data.position_id = parseInt(positionId);
     }
@@ -941,24 +1109,152 @@ class PlatformManager {
         showErrorNotification('Error creating entity', 'Network Error');
     }
     }
+
+    /**
+     * Show change password modal
+     */
+    changePassword(userId, userName) {
+        if (!this.permissions.canChangeUserPasswords) {
+            showErrorNotification('You do not have permission to change user passwords', 'Access Denied');
+            return;
+        }
+        
+        document.getElementById('changePasswordUserId').value = userId;
+        document.getElementById('changePasswordUserName').value = userName;
+        document.getElementById('changePasswordModal').classList.remove('hidden');
+    }
+
+    /**
+     * Reset user password (admin action)
+     */
+    async resetPassword(userId, userName) {
+        if (!this.permissions.canResetPasswords) {
+            showErrorNotification('You do not have permission to reset user passwords', 'Access Denied');
+            return;
+        }
+        
+        const confirmed = await showConfirmDialog(`Are you sure you want to reset the password for ${userName}?`, null, 'Reset Password');
+        if (!confirmed) {
+            return;
+        }
+
+        try {
+            const response = await fetch('api/users.php', {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    action: 'reset_password',
+                    user_id: userId
+                })
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                showSuccessNotification(`Password reset for ${userName}. New password: ${result.new_password}`, 'Password Reset');
+            } else {
+                showErrorNotification('Error resetting password: ' + result.message, 'Reset Failed');
+            }
+        } catch (error) {
+            console.error('Error resetting password:', error);
+            showErrorNotification('Error resetting password', 'Network Error');
+        }
+    }
+
+    /**
+     * Handle change password form submission
+     */
+    async handleChangePassword(e) {
+        e.preventDefault();
+        
+        const userId = document.getElementById('changePasswordUserId').value;
+        const newPassword = document.getElementById('newPassword').value;
+        const confirmPassword = document.getElementById('confirmPassword').value;
+        
+        if (newPassword !== confirmPassword) {
+            showErrorNotification('Passwords do not match', 'Validation Error');
+            return;
+        }
+        
+        if (newPassword.length < 6) {
+            showErrorNotification('Password must be at least 6 characters long', 'Validation Error');
+            return;
+        }
+        
+        try {
+            const response = await fetch('api/users.php', {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    action: 'change_password',
+                    user_id: userId,
+                    new_password: newPassword
+                })
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                this.closeChangePasswordModal();
+                showSuccessNotification('Password changed successfully', 'Password Change');
+            } else {
+                showErrorNotification('Error changing password: ' + result.message, 'Change Failed');
+            }
+        } catch (error) {
+            console.error('Error changing password:', error);
+            showErrorNotification('Error changing password', 'Network Error');
+        }
+    }
+
+    /**
+     * Close change password modal
+     */
+    closeChangePasswordModal() {
+        document.getElementById('changePasswordModal').classList.add('hidden');
+        document.getElementById('changePasswordForm').reset();
+    }
 }
 
 // System management functions
 function performBackup() {
+    if (!window.platformPermissions.isSuperAdmin) {
+        showErrorNotification('You do not have permission to perform database backups', 'Access Denied');
+        return;
+    }
+    
     showConfirmDialog('Are you sure you want to perform a database backup?', () => {
         showSuccessNotification('Database backup initiated. This may take a few minutes.', 'Backup Started');
     }, 'Database Backup');
 }
 
 function checkSystemHealth() {
+    if (!window.platformPermissions.isAdmin) {
+        showErrorNotification('You do not have permission to check system health', 'Access Denied');
+        return;
+    }
+    
     showSuccessNotification('System health check completed. All systems operational.', 'System Health');
 }
 
 function exportSystemLogs() {
+    if (!window.platformPermissions.isSuperAdmin) {
+        showErrorNotification('You do not have permission to export system logs', 'Access Denied');
+        return;
+    }
+    
     window.open('api/export.php?type=logs', '_blank');
 }
 
 function manageSettings() {
+    if (!window.platformPermissions.isSuperAdmin) {
+        showErrorNotification('You do not have permission to manage system settings', 'Access Denied');
+        return;
+    }
+    
     showNotification('System settings management - feature coming soon', 'info', 'Settings');
 }
 
@@ -1005,45 +1301,128 @@ async function refreshActivity() {
 
 // Global functions for backwards compatibility
 function refreshData() {
-    platformManager.refreshData();
+    if (window.platformManager) {
+        window.platformManager.refreshData();
+    } else {
+        console.warn('Platform manager not initialized');
+    }
 }
 
 function showAddEntityModal() {
-    platformManager.showAddEntityModal();
+    if (window.platformManager) {
+        window.platformManager.showAddEntityModal();
+    } else {
+        console.warn('Platform manager not initialized');
+    }
 }
 
 function closeAddEntityModal() {
-    platformManager.closeAddEntityModal();
+    if (window.platformManager) {
+        window.platformManager.closeAddEntityModal();
+    } else {
+        console.warn('Platform manager not initialized');
+    }
+}
+
+function closeChangePasswordModal() {
+    if (window.platformManager) {
+        window.platformManager.closeChangePasswordModal();
+    } else {
+        console.warn('Platform manager not initialized');
+    }
+}
+
+// Password visibility toggle functions
+function toggleModalPassword() {
+    const passwordInput = document.getElementById('entityPassword');
+    const eyeIcon = document.getElementById('modalEyeIcon');
+    
+    if (passwordInput.type === 'password') {
+        passwordInput.type = 'text';
+        eyeIcon.innerHTML = `
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21"></path>
+        `;
+    } else {
+        passwordInput.type = 'password';
+        eyeIcon.innerHTML = `
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+        `;
+    }
+}
+
+function toggleNewPassword() {
+    const passwordInput = document.getElementById('newPassword');
+    const eyeIcon = document.getElementById('newPasswordEyeIcon');
+    
+    if (passwordInput.type === 'password') {
+        passwordInput.type = 'text';
+        eyeIcon.innerHTML = `
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21"></path>
+        `;
+    } else {
+        passwordInput.type = 'password';
+        eyeIcon.innerHTML = `
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+        `;
+    }
+}
+
+function toggleConfirmPassword() {
+    const passwordInput = document.getElementById('confirmPassword');
+    const eyeIcon = document.getElementById('confirmPasswordEyeIcon');
+    
+    if (passwordInput.type === 'password') {
+        passwordInput.type = 'text';
+        eyeIcon.innerHTML = `
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21"></path>
+        `;
+    } else {
+        passwordInput.type = 'password';
+        eyeIcon.innerHTML = `
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+        `;
+    }
 }
 
 // Initialize platform manager immediately and make it globally available
-let platformManager;
-
 // Initialize immediately to make it available for other scripts
 function initializePlatformManager() {
-    if (!platformManager) {
-        platformManager = new PlatformManager();
-        // Make it globally accessible
-        window.platformManager = platformManager;
+    if (!window.platformManager) {
+        window.platformManager = new PlatformManager();
         
         // Initial load with lazy loading
-        platformManager.loadSystemData();
+        window.platformManager.loadSystemData();
     }
-    return platformManager;
+    return window.platformManager;
 }
 
 // Expose additional global functions for backward compatibility
 function loadSystemData() {
-    if (platformManager) {
-        platformManager.loadSystemData(true);
+    if (window.platformManager) {
+        window.platformManager.loadSystemData(true);
+    } else {
+        console.warn('Platform manager not initialized');
     }
 }
 
 function renderRealData() {
-    if (platformManager) {
-        platformManager.loadSystemData(true);
+    if (window.platformManager) {
+        window.platformManager.loadSystemData(true);
+    } else {
+        console.warn('Platform manager not initialized');
     }
 }
+
+// Make global functions available immediately
+window.refreshData = refreshData;
+window.showAddEntityModal = showAddEntityModal;
+window.closeAddEntityModal = closeAddEntityModal;
+window.closeChangePasswordModal = closeChangePasswordModal;
+window.loadSystemData = loadSystemData;
+window.renderRealData = renderRealData;
 
 // Initialize immediately when script loads
 initializePlatformManager();
@@ -1052,4 +1431,7 @@ initializePlatformManager();
 document.addEventListener('DOMContentLoaded', function() {
     initializePlatformManager();
 });
+
+// Export initialization function for external use
+window.initializePlatformTab = initializePlatformManager;
 </script> 

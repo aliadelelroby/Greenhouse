@@ -188,7 +188,12 @@ Visit: http://localhost:8000/test_connection.php
 - **sensor** - Sensor configurations and status
 - **data** - Time-series sensor readings
 - **weather** - External weather station data
-- **users/companies/positions** - User management
+- **users** - Main user table with authentication fields
+- **companies** - Company definitions (lowercase)
+- **company** - Legacy company table (uppercase columns)
+- **positions** - User position/role definitions
+- **remember_tokens** - User session persistence tokens
+- **password_reset_tokens** - Password reset functionality
 - **user_greenhouse** - User access permissions
 
 ### Sample Data

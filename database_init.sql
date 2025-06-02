@@ -162,31 +162,19 @@ CREATE TABLE `sensor_type` (
 -- --------------------------------------------------------
 
 --
--- Table structure for table `user`
---
-
-CREATE TABLE `user` (
-  `Id_user` int(11) NOT NULL,
-  `Id_company` int(11) NOT NULL,
-  `Name_user` varchar(128) NOT NULL,
-  `Lastname_user` varchar(128) DEFAULT NULL,
-  `Email_user` varchar(64) DEFAULT NULL,
-  `Login` varchar(64) NOT NULL,
-  `Hash_pwd` varchar(1028) NOT NULL,
-  `Type_user` tinyint(4) NOT NULL,
-  `Enabled` tinyint(4) NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
--- --------------------------------------------------------
-
---
 -- Table structure for table `users`
 --
 
 CREATE TABLE `users` (
   `id_user` int(11) NOT NULL,
   `name_user` varchar(255) NOT NULL,
+  `lastname_user` varchar(255) DEFAULT NULL,
   `email_user` varchar(255) DEFAULT NULL,
+  `login` varchar(64) NOT NULL,
+  `hash_pwd` varchar(1028) NOT NULL,
+  `type_user` tinyint(4) NOT NULL DEFAULT 0,
+  `enabled` tinyint(4) NOT NULL DEFAULT 1,
+  `last_login` datetime DEFAULT NULL,
   `id_company` int(11) DEFAULT NULL,
   `id_position` int(11) DEFAULT NULL,
   `created_at` timestamp NOT NULL DEFAULT current_timestamp()
@@ -226,6 +214,35 @@ CREATE TABLE `weather` (
   `humidity` float NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `remember_tokens`
+--
+
+CREATE TABLE `remember_tokens` (
+  `id` int(11) NOT NULL,
+  `user_id` int(11) NOT NULL,
+  `token` varchar(64) NOT NULL,
+  `expires_at` datetime NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `password_reset_tokens`
+--
+
+CREATE TABLE `password_reset_tokens` (
+  `id` int(11) NOT NULL,
+  `user_id` int(11) NOT NULL,
+  `token` varchar(64) NOT NULL,
+  `expires_at` datetime NOT NULL,
+  `used` tinyint(1) NOT NULL DEFAULT 0,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
 --
 -- Indexes for dumped tables
 --
@@ -253,13 +270,16 @@ ALTER TABLE `culture_type`
 --
 ALTER TABLE `data`
   ADD PRIMARY KEY (`Id_data`),
-  ADD KEY `idx_data_sensor_date_value` (`Id_sensor`,`Date_data`,`Value_data`);
+  ADD KEY `idx_data_sensor_date_value` (`Id_sensor`,`Date_data`,`Value_data`),
+  ADD KEY `idx_data_greenhouse_date` (`Id_greenhouse`,`Date_data`),
+  ADD KEY `idx_data_location` (`X_location`,`Y_location`);
 
 --
 -- Indexes for table `greenhouse`
 --
 ALTER TABLE `greenhouse`
-  ADD PRIMARY KEY (`Id_greenhouse`);
+  ADD PRIMARY KEY (`Id_greenhouse`),
+  ADD KEY `idx_greenhouse_company` (`Id_company`);
 
 --
 -- Indexes for table `greenhouse_culture`
@@ -277,13 +297,17 @@ ALTER TABLE `positions`
 -- Indexes for table `sensor`
 --
 ALTER TABLE `sensor`
-  ADD PRIMARY KEY (`Id_sensor`);
+  ADD PRIMARY KEY (`Id_sensor`),
+  ADD KEY `idx_sensor_greenhouse` (`Id_greenhouse`),
+  ADD KEY `idx_sensor_model` (`Id_sensor_model`),
+  ADD KEY `idx_sensor_enabled` (`Enabled`);
 
 --
 -- Indexes for table `sensor_model`
 --
 ALTER TABLE `sensor_model`
-  ADD PRIMARY KEY (`Id_sensor_model`);
+  ADD PRIMARY KEY (`Id_sensor_model`),
+  ADD KEY `idx_sensor_model_type` (`Id_sensor_type`);
 
 --
 -- Indexes for table `sensor_type`
@@ -291,17 +315,14 @@ ALTER TABLE `sensor_model`
 ALTER TABLE `sensor_type`
   ADD PRIMARY KEY (`Id_sensor_type`);
 
---
--- Indexes for table `user`
---
-ALTER TABLE `user`
-  ADD PRIMARY KEY (`Id_user`);
+
 
 --
 -- Indexes for table `users`
 --
 ALTER TABLE `users`
   ADD PRIMARY KEY (`id_user`),
+  ADD UNIQUE KEY `login` (`login`),
   ADD UNIQUE KEY `email_user` (`email_user`),
   ADD KEY `id_company` (`id_company`),
   ADD KEY `id_position` (`id_position`);
@@ -310,13 +331,35 @@ ALTER TABLE `users`
 -- Indexes for table `user_greenhouse`
 --
 ALTER TABLE `user_greenhouse`
-  ADD PRIMARY KEY (`Id_user`,`Id_greenhouse`);
+  ADD PRIMARY KEY (`Id_user`,`Id_greenhouse`),
+  ADD KEY `idx_user_greenhouse_enabled` (`Enabled`);
 
 --
 -- Indexes for table `weather`
 --
 ALTER TABLE `weather`
-  ADD PRIMARY KEY (`Id_data`);
+  ADD PRIMARY KEY (`Id_data`),
+  ADD KEY `idx_weather_date_station` (`Date_data`,`Id_station`),
+  ADD KEY `idx_weather_temperature` (`temperature`);
+
+--
+-- Indexes for table `remember_tokens`
+--
+ALTER TABLE `remember_tokens`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `token` (`token`),
+  ADD KEY `user_id` (`user_id`),
+  ADD KEY `idx_remember_expires` (`expires_at`);
+
+--
+-- Indexes for table `password_reset_tokens`
+--
+ALTER TABLE `password_reset_tokens`
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `token` (`token`),
+  ADD KEY `user_id` (`user_id`),
+  ADD KEY `idx_password_reset_expires` (`expires_at`),
+  ADD KEY `idx_password_reset_used` (`used`);
 
 --
 -- AUTO_INCREMENT for dumped tables
@@ -376,11 +419,7 @@ ALTER TABLE `sensor_model`
 ALTER TABLE `sensor_type`
   MODIFY `Id_sensor_type` int(11) NOT NULL AUTO_INCREMENT;
 
---
--- AUTO_INCREMENT for table `user`
---
-ALTER TABLE `user`
-  MODIFY `Id_user` int(11) NOT NULL AUTO_INCREMENT;
+
 
 --
 -- AUTO_INCREMENT for table `users`
@@ -395,6 +434,18 @@ ALTER TABLE `weather`
   MODIFY `Id_data` int(11) NOT NULL AUTO_INCREMENT;
 
 --
+-- AUTO_INCREMENT for table `remember_tokens`
+--
+ALTER TABLE `remember_tokens`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `password_reset_tokens`
+--
+ALTER TABLE `password_reset_tokens`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
 -- Constraints for dumped tables
 --
 
@@ -404,6 +455,18 @@ ALTER TABLE `weather`
 ALTER TABLE `users`
   ADD CONSTRAINT `users_ibfk_1` FOREIGN KEY (`id_company`) REFERENCES `companies` (`id_company`) ON DELETE SET NULL,
   ADD CONSTRAINT `users_ibfk_2` FOREIGN KEY (`id_position`) REFERENCES `positions` (`id_position`) ON DELETE SET NULL;
+
+--
+-- Constraints for table `remember_tokens`
+--
+ALTER TABLE `remember_tokens`
+  ADD CONSTRAINT `remember_tokens_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id_user`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `password_reset_tokens`
+--
+ALTER TABLE `password_reset_tokens`
+  ADD CONSTRAINT `password_reset_tokens_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id_user`) ON DELETE CASCADE;
 
 --
 -- Insert sample data for testing
@@ -428,18 +491,15 @@ INSERT INTO `positions` (`name_position`, `created_at`) VALUES
 ('Data Analyst', '2024-01-15 10:15:00'),
 ('System Administrator', '2024-01-15 10:20:00');
 
--- Insert sample users (lowercase table)
-INSERT INTO `users` (`name_user`, `email_user`, `id_company`, `id_position`, `created_at`) VALUES
-('John Smith', 'john.smith@greentech.com', 1, 1, '2024-01-15 10:25:00'),
-('Sarah Johnson', 'sarah.johnson@greentech.com', 1, 2, '2024-01-15 10:30:00'),
-('Mike Davis', 'mike.davis@ecogardens.com', 2, 1, '2024-02-10 15:00:00'),
-('Emma Wilson', 'emma.wilson@smartfarm.com', 3, 3, '2024-03-05 09:30:00');
+-- Insert sample users (lowercase table with authentication)
+INSERT INTO `users` (`name_user`, `lastname_user`, `email_user`, `login`, `hash_pwd`, `type_user`, `enabled`, `last_login`, `id_company`, `id_position`, `created_at`) VALUES
+('John', 'Smith', 'john.smith@greentech.com', 'john.smith', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 1, 1, '2024-01-15 10:25:00', 1, 1, '2024-01-15 10:25:00'),
+('Sarah', 'Johnson', 'sarah.johnson@greentech.com', 'sarah.johnson', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 2, 1, '2024-01-15 10:30:00', 1, 2, '2024-01-15 10:30:00'),
+('Mike', 'Davis', 'mike.davis@ecogardens.com', 'mike.davis', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 1, 1, '2024-02-10 15:00:00', 2, 1, '2024-02-10 15:00:00'),
+('Emma', 'Wilson', 'emma.wilson@smartfarm.com', 'emma.wilson', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 3, 1, '2024-03-05 09:30:00', 3, 3, '2024-03-05 09:30:00'),
+('Admin', 'User', 'admin@thermeleon.com', 'admin', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 1, 1, '2024-01-01 00:00:00', 1, 4, '2024-01-01 00:00:00');
 
--- Insert sample users (uppercase table)
-INSERT INTO `user` (`Id_company`, `Name_user`, `Lastname_user`, `Email_user`, `Login`, `Hash_pwd`, `Type_user`, `Enabled`) VALUES
-(1, 'Admin', 'User', 'admin@thermeleon.com', 'admin', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 1, 1),
-(2, 'Manager', 'User', 'manager@agritech.com', 'manager', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 2, 1),
-(3, 'Operator', 'User', 'operator@ecogrow.com', 'operator', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 3, 1);
+
 
 -- Insert sample culture types
 INSERT INTO `culture_type` (`Name_culture_type`) VALUES
@@ -533,12 +593,14 @@ CROSS JOIN (
 ) numbers
 ORDER BY gh.Id_greenhouse, seq;
 
--- Insert sample user-greenhouse associations
+-- Insert sample user-greenhouse associations (using users table IDs)
 INSERT INTO `user_greenhouse` (`Id_user`, `Id_greenhouse`, `Enabled`) VALUES
 (1, 1, 1),
 (1, 2, 1),
 (2, 1, 1),
-(3, 3, 1);
+(3, 3, 1),
+(5, 1, 1),
+(5, 2, 1);
 
 -- Generate sample temperature data for the last 7 days
 -- Simple approach using INSERT with SELECT to generate realistic data
@@ -633,11 +695,7 @@ SELECT
     'Users (lowercase)' as Entity, 
     COUNT(*) as Count 
 FROM users
-UNION ALL
-SELECT 
-    'Users (uppercase)' as Entity, 
-    COUNT(*) as Count 
-FROM user
+
 UNION ALL
 SELECT 
     'Weather Records' as Entity, 
@@ -652,4 +710,14 @@ UNION ALL
 SELECT 
     'Companies (uppercase)' as Entity, 
     COUNT(*) as Count 
-FROM company; 
+FROM company
+UNION ALL
+SELECT 
+    'Remember Tokens' as Entity, 
+    COUNT(*) as Count 
+FROM remember_tokens
+UNION ALL
+SELECT 
+    'Password Reset Tokens' as Entity, 
+    COUNT(*) as Count 
+FROM password_reset_tokens; 

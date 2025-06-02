@@ -15,12 +15,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
 
 require_once __DIR__ . '/../config/Database.php';
 require_once __DIR__ . '/../repositories/UserRepository.php';
+require_once __DIR__ . '/../repositories/AuthUserRepository.php';
 require_once __DIR__ . '/../services/ResponseService.php';
+require_once __DIR__ . '/../services/PermissionService.php';
+
+session_start();
 
 try {
     $database = Database::getInstance();
     $userRepository = new UserRepository($database);
+    $authUserRepository = new AuthUserRepository($database);
     $responseService = new ResponseService();
+    $permissionService = new PermissionService($database);
     
     // Initialize tables if they don't exist
     $userRepository->initializeTables();
@@ -29,19 +35,19 @@ try {
     
     switch ($method) {
         case 'GET':
-            handleGetRequest($userRepository, $responseService);
+            handleGetRequest($userRepository, $authUserRepository, $responseService, $permissionService);
             break;
             
         case 'POST':
-            handlePostRequest($userRepository, $responseService);
+            handlePostRequest($userRepository, $authUserRepository, $responseService, $permissionService);
             break;
             
         case 'PUT':
-            handlePutRequest($userRepository, $responseService);
+            handlePutRequest($userRepository, $authUserRepository, $responseService, $permissionService);
             break;
             
         case 'DELETE':
-            handleDeleteRequest($userRepository, $responseService);
+            handleDeleteRequest($userRepository, $authUserRepository, $responseService, $permissionService);
             break;
             
         default:
@@ -54,14 +60,26 @@ try {
     $responseService->error('Internal server error: ' . $e->getMessage(), 500);
 }
 
-function handleGetRequest(UserRepository $userRepository, ResponseService $responseService): void
+function handleGetRequest(UserRepository $userRepository, AuthUserRepository $authUserRepository, ResponseService $responseService, PermissionService $permissionService): void
 {
+    // Check authentication for all GET requests
+    if (!$permissionService->isAuthenticated()) {
+        $responseService->error('Authentication required', 401);
+        return;
+    }
+    
     $type = $_GET['type'] ?? 'users';
+    
+    // Check permissions based on request type
+    if (in_array($type, ['users', 'companies', 'positions', 'all']) && !$permissionService->canManageUsers()) {
+        $responseService->error($permissionService->getPermissionErrorMessage('access user management data'), 403);
+        return;
+    }
     
     try {
         switch ($type) {
             case 'users':
-                $users = $userRepository->findAllUsers();
+                $users = $authUserRepository->findAllAuthUsers();
                 $responseService->success($users);
                 break;
                 
@@ -82,7 +100,7 @@ function handleGetRequest(UserRepository $userRepository, ResponseService $respo
                 
             case 'all':
                 $data = [
-                    'users' => $userRepository->findAllUsers(),
+                    'users' => $authUserRepository->findAllAuthUsers(),
                     'companies' => $userRepository->findAllCompanies(),
                     'positions' => $userRepository->findAllPositions(),
                     'statistics' => $userRepository->getUserStatistics()
@@ -98,8 +116,19 @@ function handleGetRequest(UserRepository $userRepository, ResponseService $respo
     }
 }
 
-function handlePostRequest(UserRepository $userRepository, ResponseService $responseService): void
+function handlePostRequest(UserRepository $userRepository, AuthUserRepository $authUserRepository, ResponseService $responseService, PermissionService $permissionService): void
 {
+    // Check authentication and creation permissions
+    if (!$permissionService->isAuthenticated()) {
+        $responseService->error('Authentication required', 401);
+        return;
+    }
+    
+    if (!$permissionService->canCreateEntities()) {
+        $responseService->error($permissionService->getPermissionErrorMessage('create entities'), 403);
+        return;
+    }
+    
     $input = json_decode(file_get_contents('php://input'), true);
     
     if (!$input) {
@@ -114,15 +143,18 @@ function handlePostRequest(UserRepository $userRepository, ResponseService $resp
             case 'user':
                 $name = $input['name'] ?? '';
                 $email = $input['email'] ?? '';
+                $login = $input['login'] ?? '';
+                $password = $input['password'] ?? '';
+                $userType = $input['user_type'] ?? 0;
                 $companyId = !empty($input['company_id']) ? (int)$input['company_id'] : null;
                 $positionId = !empty($input['position_id']) ? (int)$input['position_id'] : null;
                 
-                if (empty($name)) {
-                    $responseService->error('Name is required', 400);
+                if (empty($name) || empty($login) || empty($password)) {
+                    $responseService->error('Name, login, and password are required', 400);
                     return;
                 }
                 
-                $userId = $userRepository->createUser($name, $email, $companyId, $positionId);
+                $userId = $authUserRepository->createAuthUser($name, $email, $login, $password, $userType, $companyId);
                 $responseService->success(['id' => $userId, 'message' => 'User created successfully']);
                 break;
                 
@@ -158,8 +190,14 @@ function handlePostRequest(UserRepository $userRepository, ResponseService $resp
     }
 }
 
-function handlePutRequest(UserRepository $userRepository, ResponseService $responseService): void
+function handlePutRequest(UserRepository $userRepository, AuthUserRepository $authUserRepository, ResponseService $responseService, PermissionService $permissionService): void
 {
+    // Check authentication
+    if (!$permissionService->isAuthenticated()) {
+        $responseService->error('Authentication required', 401);
+        return;
+    }
+    
     $input = json_decode(file_get_contents('php://input'), true);
     
     if (!$input) {
@@ -167,6 +205,34 @@ function handlePutRequest(UserRepository $userRepository, ResponseService $respo
         return;
     }
     
+    $action = $input['action'] ?? '';
+    
+    // Handle password-related actions
+    if ($action === 'change_password') {
+        if (!$permissionService->canChangeUserPasswords()) {
+            $responseService->error($permissionService->getPermissionErrorMessage('change user passwords'), 403);
+            return;
+        }
+        handleChangePassword($authUserRepository, $responseService, $input);
+        return;
+    }
+    
+    if ($action === 'reset_password') {
+        if (!$permissionService->canResetPasswords()) {
+            $responseService->error($permissionService->getPermissionErrorMessage('reset user passwords'), 403);
+            return;
+        }
+        handleResetPassword($authUserRepository, $responseService, $input);
+        return;
+    }
+    
+    // Check general management permissions for other actions
+    if (!$permissionService->canManageUsers()) {
+        $responseService->error($permissionService->getPermissionErrorMessage('manage users'), 403);
+        return;
+    }
+    
+    // Handle status updates
     $type = $input['type'] ?? '';
     $id = $input['id'] ?? 0;
     $status = $input['status'] ?? '';
@@ -181,7 +247,7 @@ function handlePutRequest(UserRepository $userRepository, ResponseService $respo
         
         switch ($type) {
             case 'user':
-                $success = $userRepository->updateUserStatus((int)$id, $status);
+                $success = $authUserRepository->updateUserStatus((int)$id, $status);
                 break;
                 
             case 'company':
@@ -207,8 +273,19 @@ function handlePutRequest(UserRepository $userRepository, ResponseService $respo
     }
 }
 
-function handleDeleteRequest(UserRepository $userRepository, ResponseService $responseService): void
+function handleDeleteRequest(UserRepository $userRepository, AuthUserRepository $authUserRepository, ResponseService $responseService, PermissionService $permissionService): void
 {
+    // Check authentication and delete permissions
+    if (!$permissionService->isAuthenticated()) {
+        $responseService->error('Authentication required', 401);
+        return;
+    }
+    
+    if (!$permissionService->canDeleteEntities()) {
+        $responseService->error($permissionService->getPermissionErrorMessage('delete entities'), 403);
+        return;
+    }
+    
     $type = $_GET['type'] ?? '';
     $id = $_GET['id'] ?? 0;
     
@@ -222,7 +299,7 @@ function handleDeleteRequest(UserRepository $userRepository, ResponseService $re
         
         switch ($type) {
             case 'user':
-                $success = $userRepository->deleteUser((int)$id);
+                $success = $authUserRepository->deleteUser((int)$id);
                 break;
                 
             case 'company':
@@ -245,5 +322,59 @@ function handleDeleteRequest(UserRepository $userRepository, ResponseService $re
         }
     } catch (Exception $e) {
         $responseService->error('Failed to delete: ' . $e->getMessage(), 500);
+    }
+}
+
+/**
+ * Handle password change
+ */
+function handleChangePassword(AuthUserRepository $authUserRepository, ResponseService $responseService, array $input): void
+{
+    $userId = $input['user_id'] ?? 0;
+    $newPassword = $input['new_password'] ?? '';
+    
+    if (empty($userId) || empty($newPassword)) {
+        $responseService->error('User ID and new password are required', 400);
+        return;
+    }
+    
+    try {
+        $success = $authUserRepository->changeUserPassword((int)$userId, $newPassword);
+        
+        if ($success) {
+            $responseService->success(['message' => 'Password changed successfully']);
+        } else {
+            $responseService->error('Failed to change password', 500);
+        }
+    } catch (Exception $e) {
+        $responseService->error('Failed to change password: ' . $e->getMessage(), 500);
+    }
+}
+
+/**
+ * Handle password reset
+ */
+function handleResetPassword(AuthUserRepository $authUserRepository, ResponseService $responseService, array $input): void
+{
+    $userId = $input['user_id'] ?? 0;
+    
+    if (empty($userId)) {
+        $responseService->error('User ID is required', 400);
+        return;
+    }
+    
+    try {
+        $newPassword = $authUserRepository->resetUserPassword((int)$userId);
+        
+        if ($newPassword) {
+            $responseService->success([
+                'message' => 'Password reset successfully',
+                'new_password' => $newPassword
+            ]);
+        } else {
+            $responseService->error('Failed to reset password', 500);
+        }
+    } catch (Exception $e) {
+        $responseService->error('Failed to reset password: ' . $e->getMessage(), 500);
     }
 } 

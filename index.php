@@ -1,3 +1,40 @@
+<?php
+// Start session and check authentication
+session_start();
+
+// Check if user is logged in
+$isAuthenticated = false;
+$currentUser = null;
+
+if (isset($_SESSION['user_id']) && isset($_SESSION['user_login'])) {
+    $isAuthenticated = true;
+    $currentUser = [
+        'id' => $_SESSION['user_id'],
+        'name' => $_SESSION['user_name'] ?? 'User',
+        'login' => $_SESSION['user_login'],
+        'type' => $_SESSION['user_type'] ?? 0,
+        'company_id' => $_SESSION['company_id'] ?? null
+    ];
+}
+
+// Redirect to login if not authenticated
+if (!$isAuthenticated) {
+    header('Location: login.php');
+    exit();
+}
+
+// Initialize permission service for tab visibility
+require_once __DIR__ . '/config/Database.php';
+require_once __DIR__ . '/services/PermissionService.php';
+
+try {
+    $database = Database::getInstance();
+    $permissionService = new PermissionService($database);
+} catch (Exception $e) {
+    error_log("Permission service error: " . $e->getMessage());
+    $permissionService = null;
+}
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -149,9 +186,30 @@
 <body class="bg-gray-50 min-h-screen">
     <div class="container mx-auto px-4 py-6">
         <!-- Header -->
-        <header class="mb-8">
-            <h1 class="text-3xl font-bold text-gray-900 mb-2">Thermeleon Dashboard</h1>
-            <p class="text-gray-600">Monitor and manage your greenhouse data</p>
+        <header class="mb-8 flex flex-col md:flex-row md:items-center md:justify-between">
+            <div>
+                <h1 class="text-3xl font-bold text-gray-900 mb-2">Thermeleon Dashboard</h1>
+                <p class="text-gray-600">Monitor and manage your greenhouse data</p>
+            </div>
+            <div class="mt-4 md:mt-0 flex items-center space-x-4">
+                <div class="flex items-center space-x-2 text-sm text-gray-600">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+                    </svg>
+                    <span>Welcome, <?php echo htmlspecialchars($currentUser['name']); ?></span>
+                    <?php if ($currentUser['type'] > 0): ?>
+                        <span class="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
+                            <?php echo $currentUser['type'] == 1 ? 'Admin' : 'Super Admin'; ?>
+                        </span>
+                    <?php endif; ?>
+                </div>
+                <button onclick="logout()" class="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors duration-200 text-sm flex items-center">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
+                    </svg>
+                    Logout
+                </button>
+            </div>
         </header>
 
         <!-- Navigation Tabs -->
@@ -199,6 +257,7 @@
                                 </div>
                             </button>
                         </li>
+                        <?php if ($permissionService && $permissionService->canAccessPlatformManagement()): ?>
                         <li>
                             <button onclick="showTab('platform')" 
                                     class="tab-btn w-full text-left px-4 py-3 rounded-lg transition-colors duration-200 text-gray-700 hover:bg-gray-100" 
@@ -211,6 +270,7 @@
                                 </div>
                             </button>
                         </li>
+                        <?php endif; ?>
                     </ul>
                 </div>
             </nav>
@@ -557,6 +617,27 @@
         
         function showWarningNotification(message, title = 'Warning') {
             dialogSystem.showNotification(title, message, 'warning');
+        }
+        
+        // Logout function
+        async function logout() {
+            try {
+                const response = await fetch('api/auth.php', {
+                    method: 'DELETE'
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    window.location.href = 'login.php';
+                } else {
+                    showErrorNotification('Logout failed. Please try again.', 'Logout Error');
+                }
+            } catch (error) {
+                console.error('Logout error:', error);
+                // Force redirect even if API call fails
+                window.location.href = 'login.php';
+            }
         }
         
         // Initialize the default tab on page load

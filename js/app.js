@@ -412,6 +412,98 @@ function showChart() {
   if (chartPlaceholder) chartPlaceholder.style.display = "none";
 }
 
+/**
+ * Aggregates data points based on the time scale configuration
+ * @param {Array} dataPoints - Array of {x: Date, y: number} objects
+ * @param {Object} timeConfig - Time configuration from getTimeScaleConfig
+ * @returns {Array} Aggregated data points
+ */
+function aggregateDataPoints(dataPoints, timeConfig) {
+  if (!Array.isArray(dataPoints) || dataPoints.length === 0) {
+    return dataPoints;
+  }
+
+  // For hour-based scales with small step sizes, return original data
+  if (timeConfig.unit === "hour" && timeConfig.stepSize <= 2) {
+    return dataPoints;
+  }
+
+  // For small datasets, don't aggregate to preserve detail
+  if (dataPoints.length <= 50) {
+    return dataPoints;
+  }
+
+  const aggregatedData = new Map();
+
+  dataPoints.forEach((point) => {
+    if (!point.x || isNaN(point.y)) return; // Skip invalid points
+
+    let groupKey;
+    const date = new Date(point.x);
+
+    if (isNaN(date.getTime())) return; // Skip invalid dates
+
+    if (timeConfig.unit === "hour") {
+      // Group by hour intervals
+      const hourInterval = timeConfig.stepSize;
+      const roundedHour =
+        Math.floor(date.getHours() / hourInterval) * hourInterval;
+      const groupDate = new Date(date);
+      groupDate.setHours(roundedHour, 0, 0, 0);
+      groupKey = groupDate.toISOString();
+    } else if (timeConfig.unit === "day") {
+      // Group by day (use noon to avoid timezone issues)
+      const groupDate = new Date(date);
+      groupDate.setHours(12, 0, 0, 0);
+      groupKey = groupDate.toISOString().split("T")[0];
+    } else if (timeConfig.unit === "month") {
+      // Group by month
+      groupKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(
+        2,
+        "0"
+      )}`;
+    } else {
+      // Default: return original data
+      return dataPoints;
+    }
+
+    if (!aggregatedData.has(groupKey)) {
+      let groupDate;
+      if (timeConfig.unit === "month") {
+        groupDate = new Date(`${groupKey}-15T12:00:00`); // Mid-month
+      } else if (timeConfig.unit === "day") {
+        groupDate = new Date(`${groupKey}T12:00:00`); // Noon
+      } else {
+        groupDate = new Date(groupKey);
+      }
+
+      aggregatedData.set(groupKey, {
+        x: groupDate,
+        sum: 0,
+        count: 0,
+      });
+    }
+
+    const group = aggregatedData.get(groupKey);
+    group.sum += point.y;
+    group.count++;
+  });
+
+  // Calculate averages and return aggregated points
+  const result = Array.from(aggregatedData.values())
+    .filter((group) => group.count > 0) // Ensure we have valid data
+    .map((group) => ({
+      x: group.x,
+      y: group.sum / group.count, // Use pre-calculated sum for better performance
+    }))
+    .sort((a, b) => a.x.getTime() - b.x.getTime());
+
+  console.log(
+    `Data aggregation: ${dataPoints.length} points → ${result.length} points (${timeConfig.unit})`
+  );
+  return result;
+}
+
 function renderChart(data) {
   const ctx = document.getElementById("temperatureChart");
   if (!ctx) return;
@@ -514,6 +606,20 @@ function renderChart(data) {
     return;
   }
 
+  // Get date range for dynamic time scale configuration
+  const startDate = startDateInput
+    ? new Date(startDateInput.value)
+    : new Date();
+  const endDate = endDateInput ? new Date(endDateInput.value) : new Date();
+  const timeConfig = getTimeScaleConfig(startDate, endDate);
+
+  // Apply data aggregation to all datasets
+  datasets.forEach((dataset) => {
+    if (dataset.data && Array.isArray(dataset.data)) {
+      dataset.data = aggregateDataPoints(dataset.data, timeConfig);
+    }
+  });
+
   const config = {
     type: "line",
     data: { datasets },
@@ -552,7 +658,14 @@ function renderChart(data) {
             },
             label: function (context) {
               const value = context.parsed.y;
-              return `${context.dataset.label}: ${value.toFixed(2)}°C`;
+              let label = `${context.dataset.label}: ${value.toFixed(2)}°C`;
+
+              // Add aggregation info for large time periods
+              if (timeConfig.unit === "day" || timeConfig.unit === "month") {
+                label += ` (avg)`;
+              }
+
+              return label;
             },
           },
         },
@@ -561,12 +674,10 @@ function renderChart(data) {
         x: {
           type: "time",
           time: {
-            unit: "hour",
-            tooltipFormat: "dd LLL yyyy HH:mm",
-            displayFormats: {
-              hour: "HH:mm",
-              day: "dd MMM",
-            },
+            unit: timeConfig.unit,
+            stepSize: timeConfig.stepSize,
+            tooltipFormat: timeConfig.tooltipFormat,
+            displayFormats: timeConfig.displayFormats,
           },
           title: {
             display: true,
@@ -863,3 +974,123 @@ function initializeManagerTab() {
 window.removeSensor = removeSensor;
 window.updateChart = updateChart;
 window.exportData = exportData;
+
+/**
+ * Dynamic Time Scale Configuration
+ *
+ * This function automatically determines the appropriate time unit and display format
+ * for Chart.js time scales based on the selected date range. This solves the issue
+ * where large time periods were still showing hourly units instead of scaling to
+ * days or months appropriately.
+ *
+ * Time Scale Logic:
+ * - ≤ 24 hours: Show hours (1-12 hour steps)
+ * - 1-7 days: Show hours with larger steps (2-6 hour steps)
+ * - 1 week - 1 month: Show days (1-2 day steps)
+ * - 1 month - 1 year: Show days with larger steps (weekly steps)
+ * - > 1 year: Show months (1-2 month steps)
+ */
+
+/**
+ * Determines the appropriate time unit and display format based on the date range
+ * @param {Date} startDate - The start date of the range
+ * @param {Date} endDate - The end date of the range
+ * @returns {Object} Object containing unit, stepSize, and displayFormats
+ */
+function getTimeScaleConfig(startDate, endDate) {
+  // Validate input dates
+  if (!(startDate instanceof Date) || !(endDate instanceof Date)) {
+    console.warn(
+      "Invalid dates provided to getTimeScaleConfig, using default hour configuration"
+    );
+    return {
+      unit: "hour",
+      stepSize: 1,
+      displayFormats: {
+        hour: "HH:mm",
+        day: "dd MMM",
+        month: "MMM yyyy",
+      },
+      tooltipFormat: "dd LLL yyyy HH:mm",
+    };
+  }
+
+  const diffMs = endDate.getTime() - startDate.getTime();
+  const diffHours = diffMs / (1000 * 60 * 60);
+  const diffDays = diffMs / (1000 * 60 * 60 * 24);
+  const diffMonths = diffDays / 30; // Approximate
+
+  if (diffHours <= 0) {
+    // Invalid or same date range
+    return {
+      unit: "hour",
+      stepSize: 1,
+      displayFormats: {
+        hour: "HH:mm",
+        day: "dd MMM",
+        month: "MMM yyyy",
+      },
+      tooltipFormat: "dd LLL yyyy HH:mm",
+    };
+  } else if (diffHours <= 24) {
+    // Less than or equal to 1 day - show hours
+    return {
+      unit: "hour",
+      stepSize: diffHours <= 6 ? 1 : Math.max(1, Math.ceil(diffHours / 12)),
+      displayFormats: {
+        hour: "HH:mm",
+        day: "dd MMM",
+        month: "MMM yyyy",
+      },
+      tooltipFormat: "dd LLL yyyy HH:mm",
+    };
+  } else if (diffDays <= 7) {
+    // 1-7 days - show hours with larger steps
+    return {
+      unit: "hour",
+      stepSize: Math.max(2, Math.ceil(diffHours / 48)), // Show every 2-6 hours
+      displayFormats: {
+        hour: "dd MMM HH:mm",
+        day: "dd MMM",
+        month: "MMM yyyy",
+      },
+      tooltipFormat: "dd LLL yyyy HH:mm",
+    };
+  } else if (diffDays <= 31) {
+    // 1 week to 1 month - show days
+    return {
+      unit: "day",
+      stepSize: Math.max(1, Math.ceil(diffDays / 15)), // Show every 1-2 days
+      displayFormats: {
+        hour: "HH:mm",
+        day: "dd MMM",
+        month: "MMM yyyy",
+      },
+      tooltipFormat: "dd LLL yyyy",
+    };
+  } else if (diffDays <= 365) {
+    // 1 month to 1 year - show days with larger steps
+    return {
+      unit: "day",
+      stepSize: Math.max(7, Math.ceil(diffDays / 52)), // Show every week to 2 weeks
+      displayFormats: {
+        hour: "HH:mm",
+        day: "dd MMM",
+        month: "MMM yyyy",
+      },
+      tooltipFormat: "dd LLL yyyy",
+    };
+  } else {
+    // More than 1 year - show months
+    return {
+      unit: "month",
+      stepSize: Math.max(1, Math.ceil(diffMonths / 24)), // Show every 1-2 months
+      displayFormats: {
+        hour: "HH:mm",
+        day: "dd MMM",
+        month: "MMM yyyy",
+      },
+      tooltipFormat: "LLL yyyy",
+    };
+  }
+}

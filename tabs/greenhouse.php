@@ -1,19 +1,34 @@
-<h2 class="text-2xl font-bold text-gray-900 mb-6">Greenhouse Dashboard</h2>
-
 <?php
-// Use refactored architecture for data fetching
+session_start();
+
+// Permission check and data filtering for greenhouse access
 require_once __DIR__ . '/../config/Database.php';
+require_once __DIR__ . '/../services/PermissionService.php';
 require_once __DIR__ . '/../repositories/GreenhouseRepository.php';
 
 try {
     $database = Database::getInstance();
-    $greenhouseRepository = new GreenhouseRepository($database);
-    $greenhouses = $greenhouseRepository->findAll();
+    $permissionService = new PermissionService($database);
+    
+    // Check if user is authenticated
+    if (!$permissionService->isAuthenticated()) {
+        header('HTTP/1.1 401 Unauthorized');
+        echo '<div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">';
+        echo '<strong>Access Denied:</strong> You must be logged in to access greenhouse data.';
+        echo '</div>';
+        return;
+    }
+    
+    // Get accessible greenhouses based on user permissions
+    $greenhouses = $permissionService->getAccessibleGreenhouses();
+    
 } catch (Exception $e) {
     echo '<div class="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">Error loading greenhouses: ' . htmlspecialchars($e->getMessage()) . '</div>';
     $greenhouses = [];
 }
 ?>
+
+<h2 class="text-2xl font-bold text-gray-900 mb-6">Greenhouse Dashboard</h2>
 
 <!-- Greenhouse Selection -->
 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
@@ -27,7 +42,7 @@ try {
                     echo '<option value="' . htmlspecialchars($greenhouse["Id_greenhouse"]) . '">' . htmlspecialchars($greenhouse["Name_greenhouse"]) . '</option>';
                 }
             } else {
-                echo '<option disabled>No greenhouses available</option>';
+                echo '<option disabled>No greenhouses available for your account</option>';
             }
             ?>
         </select>
@@ -124,7 +139,8 @@ try {
 <!-- Export Section -->
 <div class="border-t pt-6">
     <h3 class="text-lg font-semibold text-gray-900 mb-4">Export Data</h3>
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <?php if ($permissionService->canExportData()): ?>
         <button id="exportQuick" class="flex items-center justify-center px-6 py-3 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors duration-200" disabled>
             <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
@@ -138,6 +154,14 @@ try {
             </svg>
             Export Detailed Data (hourly averages)
         </button>
+        <?php else: ?>
+        <div class="col-span-2 bg-gray-100 border border-gray-300 rounded-lg p-6 text-center">
+            <svg class="w-8 h-8 mx-auto mb-2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path>
+            </svg>
+            <p class="text-gray-600">Export functionality is not available with your current permissions.</p>
+        </div>
+        <?php endif; ?>
     </div>
 </div>
 
@@ -158,6 +182,14 @@ try {
 </div>
 
 <script>
+// Pass PHP permission data to JavaScript
+window.greenhousePermissions = {
+    canExportData: <?php echo $permissionService->canExportData() ? 'true' : 'false'; ?>,
+    canAccessGreenhouse: <?php echo $permissionService->canAccessGreenhouse() ? 'true' : 'false'; ?>,
+    isAdmin: <?php echo $permissionService->isAdmin() ? 'true' : 'false'; ?>,
+    isSuperAdmin: <?php echo $permissionService->isSuperAdmin() ? 'true' : 'false'; ?>
+};
+
 // Initialize chart placeholder visibility and date pickers
 document.addEventListener('DOMContentLoaded', function() {
     const chartContainer = document.getElementById('chartContainer');
@@ -204,6 +236,11 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 function exportData(type) {
+    if (!window.greenhousePermissions.canExportData) {
+        showNotificationModal('Export Error', 'You do not have permission to export data.', 'error');
+        return;
+    }
+    
     const greenhouseId = document.getElementById('menuSelect').value;
     const sensors = Array.from(selectedSensors);
     const startDate = document.getElementById('startDate').value;

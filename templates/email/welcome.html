@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Welcome to {{site_name}}</title>
+    <style>
+      body {
+        margin: 0;
+        padding: 0;
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background-color: #f4f4f4;
+        line-height: 1.6;
+      }
+      .container {
+        max-width: 600px;
+        margin: 0 auto;
+        background-color: #ffffff;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+      }
+      .header {
+        background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+        color: white;
+        padding: 40px 30px;
+        text-align: center;
+      }
+      .header h1 {
+        margin: 0;
+        font-size: 28px;
+        font-weight: 300;
+      }
+      .welcome-icon {
+        font-size: 48px;
+        margin-bottom: 10px;
+      }
+      .content {
+        padding: 40px 30px;
+      }
+      .greeting {
+        font-size: 18px;
+        color: #333;
+        margin-bottom: 20px;
+      }
+      .message {
+        color: #666;
+        margin-bottom: 20px;
+        line-height: 1.7;
+      }
+      .cta-button {
+        text-align: center;
+        margin: 30px 0;
+      }
+      .cta-button a {
+        display: inline-block;
+        background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+        color: white;
+        padding: 15px 30px;
+        text-decoration: none;
+        border-radius: 5px;
+        font-weight: 600;
+        font-size: 16px;
+        transition: transform 0.2s;
+      }
+      .cta-button a:hover {
+        transform: translateY(-2px);
+      }
+      .features {
+        background-color: #f8f9fa;
+        border-radius: 5px;
+        padding: 20px;
+        margin: 20px 0;
+      }
+      .features h3 {
+        color: #333;
+        margin-top: 0;
+        margin-bottom: 15px;
+      }
+      .feature-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+      }
+      .feature-list li {
+        padding: 8px 0;
+        color: #666;
+      }
+      .feature-list li::before {
+        content: "✓ ";
+        color: #28a745;
+        font-weight: bold;
+        margin-right: 8px;
+      }
+      .footer {
+        background-color: #f8f9fa;
+        color: #666;
+        padding: 30px;
+        text-align: center;
+        font-size: 14px;
+        border-top: 1px solid #e9ecef;
+      }
+      .footer p {
+        margin: 5px 0;
+      }
+      @media (max-width: 600px) {
+        .container {
+          margin: 0;
+          box-shadow: none;
+        }
+        .header,
+        .content,
+        .footer {
+          padding: 20px;
+        }
+        .header h1 {
+          font-size: 24px;
+        }
+        .welcome-icon {
+          font-size: 36px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <div class="welcome-icon">🎉</div>
+        <h1>Welcome to {{site_name}}!</h1>
+      </div>
+
+      <div class="content">
+        <div class="greeting">Hello {{user_name}},</div>
+
+        <div class="message">
+          Welcome to {{site_name}}! We're excited to have you on board. Your
+          account has been successfully created and you're ready to get started.
+        </div>
+
+        <div class="cta-button">
+          <a href="{{login_link}}" target="_blank">Get Started</a>
+        </div>
+
+        <div class="features">
+          <h3>What you can do with {{site_name}}:</h3>
+          <ul class="feature-list">
+            <li>Access your personalized dashboard</li>
+            <li>Manage your account settings</li>
+            <li>Connect with your team</li>
+            <li>Explore powerful features</li>
+            <li>Get 24/7 customer support</li>
+          </ul>
+        </div>
+
+        <div class="message">
+          If you have any questions or need help getting started, don't hesitate
+          to reach out to our support team. We're here to help!
+        </div>
+
+        <div class="message">
+          Thank you for choosing {{site_name}}. We look forward to helping you
+          achieve your goals!
+        </div>
+      </div>
+
+      <div class="footer">
+        <p><strong>{{site_name}} Team</strong></p>
+        <p>
+          This email was sent automatically. Please do not reply to this email.
+        </p>
+        <p>© {{site_name}}. All rights reserved.</p>
+      </div>
+    </div>
+  </body>
+</html>
