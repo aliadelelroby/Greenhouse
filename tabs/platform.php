@@ -48,15 +48,16 @@ try {
     // Get user statistics
     $userStats = $userRepository->getUserStatistics();
     
-    // Get recent activity from data table
+    // Get recent activity from data table - OPTIMIZED for 8M rows with INNER JOIN
     $recentActivityQuery = "
         SELECT 
             'data' as type,
             CONCAT('Data recorded from sensor: ', COALESCE(s.Name_sensor, 'Unknown')) as activity,
             d.Date_data as timestamp
         FROM data d
-        LEFT JOIN sensor s ON d.Id_sensor = s.Id_sensor
-        WHERE d.Enabled = 1
+        INNER JOIN sensor s ON d.Id_sensor = s.Id_sensor AND s.Enabled = 1
+        WHERE d.Enabled = 1 
+        AND d.Date_data >= DATE_SUB(NOW(), INTERVAL 7 DAY)
         ORDER BY d.Date_data DESC
         LIMIT 10
     ";
@@ -192,7 +193,8 @@ try {
                     <span class="text-sm text-gray-600">Data Points Today</span>
                     <span class="text-lg font-semibold text-gray-900" id="dataPointsToday">
                         <?php
-                        $result = $connection->query("SELECT COUNT(*) as count FROM data WHERE DATE(Date_data) = CURDATE() AND Enabled = 1");
+                        // OPTIMIZED: Use >= and < instead of DATE() function for better performance
+                        $result = $connection->query("SELECT COUNT(*) as count FROM data WHERE Date_data >= CURDATE() AND Date_data < CURDATE() + INTERVAL 1 DAY AND Enabled = 1");
                         echo $result ? $result->fetch_assoc()['count'] : 0;
                         ?>
                     </span>

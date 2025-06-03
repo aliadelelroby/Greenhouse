@@ -32,21 +32,38 @@ try {
     $result = $connection->query("SELECT COUNT(*) as count FROM sensor");
     $totalSensors = $result ? $result->fetch_assoc()['count'] : 0;
     
-    // Get recent alerts from data (e.g., temperature thresholds)
+    // Get recent alerts from data (e.g., temperature thresholds) - OPTIMIZED for 8M rows with UNION for OR condition
     $alertsQuery = "
-        SELECT 
+        (SELECT 
             d.Id_sensor,
             s.Name_sensor,
             g.Name_greenhouse,
             d.Value_data,
             d.Date_data
         FROM data d
-        LEFT JOIN sensor s ON d.Id_sensor = s.Id_sensor
+        INNER JOIN sensor s ON d.Id_sensor = s.Id_sensor AND s.Enabled = 1
         LEFT JOIN greenhouse g ON s.Id_greenhouse = g.Id_greenhouse
-        WHERE (d.Value_data > 30 OR d.Value_data < 5) 
-        AND d.Enabled = 1 
-        AND s.Enabled = 1
+        WHERE d.Enabled = 1 
+        AND d.Date_data >= DATE_SUB(NOW(), INTERVAL 24 HOUR)
+        AND d.Value_data > 30
         ORDER BY d.Date_data DESC
+        LIMIT 5)
+        UNION ALL
+        (SELECT 
+            d.Id_sensor,
+            s.Name_sensor,
+            g.Name_greenhouse,
+            d.Value_data,
+            d.Date_data
+        FROM data d
+        INNER JOIN sensor s ON d.Id_sensor = s.Id_sensor AND s.Enabled = 1
+        LEFT JOIN greenhouse g ON s.Id_greenhouse = g.Id_greenhouse
+        WHERE d.Enabled = 1 
+        AND d.Date_data >= DATE_SUB(NOW(), INTERVAL 24 HOUR)
+        AND d.Value_data < 5
+        ORDER BY d.Date_data DESC
+        LIMIT 5)
+        ORDER BY Date_data DESC
         LIMIT 5
     ";
     $alerts = [];

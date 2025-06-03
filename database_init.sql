@@ -266,13 +266,19 @@ ALTER TABLE `culture_type`
   ADD PRIMARY KEY (`Id_culture_type`);
 
 --
--- Indexes for table `data`
+-- Indexes for table `data` - OPTIMIZED for 8M+ rows
 --
 ALTER TABLE `data`
   ADD PRIMARY KEY (`Id_data`),
   ADD KEY `idx_data_sensor_date_value` (`Id_sensor`,`Date_data`,`Value_data`),
   ADD KEY `idx_data_greenhouse_date` (`Id_greenhouse`,`Date_data`),
-  ADD KEY `idx_data_location` (`X_location`,`Y_location`);
+  ADD KEY `idx_data_location` (`X_location`,`Y_location`),
+  ADD KEY `idx_data_enabled_date` (`Enabled`,`Date_data` DESC),
+  ADD KEY `idx_data_sensor_enabled` (`Id_sensor`,`Enabled`),
+  ADD KEY `idx_data_date_enabled` (`Date_data`,`Enabled`),
+  ADD KEY `idx_data_value_enabled` (`Value_data`,`Enabled`),
+  ADD KEY `idx_data_enabled_value_date` (`Enabled`,`Value_data`,`Date_data` DESC),
+  ADD KEY `idx_data_enabled` (`Enabled`);
 
 --
 -- Indexes for table `greenhouse`
@@ -294,13 +300,15 @@ ALTER TABLE `positions`
   ADD PRIMARY KEY (`id_position`);
 
 --
--- Indexes for table `sensor`
+-- Indexes for table `sensor` - OPTIMIZED for JOINs with data table
 --
 ALTER TABLE `sensor`
   ADD PRIMARY KEY (`Id_sensor`),
   ADD KEY `idx_sensor_greenhouse` (`Id_greenhouse`),
   ADD KEY `idx_sensor_model` (`Id_sensor_model`),
-  ADD KEY `idx_sensor_enabled` (`Enabled`);
+  ADD KEY `idx_sensor_enabled` (`Enabled`),
+  ADD KEY `idx_sensor_greenhouse_enabled` (`Id_greenhouse`,`Enabled`),
+  ADD KEY `idx_sensor_enabled_greenhouse` (`Enabled`,`Id_greenhouse`);
 
 --
 -- Indexes for table `sensor_model`
@@ -669,6 +677,30 @@ CROSS JOIN (SELECT @row_number := 0) r
 ORDER BY seq;
 
 COMMIT;
+
+-- ========================================
+-- PERFORMANCE OPTIMIZATION NOTES
+-- ========================================
+-- 
+-- The indexes added above are specifically designed to handle:
+-- 1. Large data table (8M+ rows) with frequent ORDER BY Date_data DESC queries
+-- 2. Common WHERE clauses filtering by Enabled = 1
+-- 3. JOIN operations between data and sensor tables
+-- 4. Value-based filtering for alerts (temperature thresholds)
+-- 
+-- Key index explanations:
+-- - idx_data_enabled_date: Optimizes ORDER BY Date_data DESC WHERE Enabled = 1
+-- - idx_data_sensor_enabled: Optimizes JOINs and sensor-specific queries
+-- - idx_data_enabled_value_date: Optimizes alert queries with value ranges
+-- - idx_sensor_greenhouse_enabled: Optimizes greenhouse-sensor relationships
+-- 
+-- These indexes should significantly improve performance for:
+-- - platform.php recent activity queries
+-- - manager.php alerts queries  
+-- - Data export operations
+-- - Real-time dashboard updates
+--
+-- ========================================
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
 /*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
