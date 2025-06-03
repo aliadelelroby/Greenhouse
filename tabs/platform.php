@@ -88,71 +88,58 @@ try {
     <div class="bg-white rounded-lg border border-gray-200 shadow-sm">
         <div class="px-6 py-4 border-b border-gray-200">
             <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-                <div class="flex items-center gap-4">
-                    <h3 class="text-lg font-semibold text-gray-900">System Management</h3>
-                    <div class="flex items-center gap-2">
-                        <label class="text-sm font-medium text-gray-600">View:</label>
-                        <select id="entityTypeSelect" class="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white hover:border-gray-400 focus:ring-2 focus:ring-thermeleon-500 focus:border-thermeleon-500 transition-colors">
-                            <option value="greenhouse">Greenhouse</option>
-                            <option value="sensor">Sensor</option>
-                            <option value="data">Data Records</option>
-                            <option value="user">Users</option>
-                            <option value="company">Companies</option>
-                            <option value="position">Positions</option>
-                        </select>
-                    </div>
-                </div>
-                <button onclick="refreshData()" class="px-4 py-2 bg-thermeleon-500 text-white rounded-lg hover:bg-thermeleon-600 transition-colors duration-200 flex items-center text-sm shadow-sm">
-                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
-                    </svg>
-                    Refresh Data
-                </button>
-            </div>
-        </div>
-        
-        <!-- Filters -->
-        <div class="px-6 py-4 border-b border-gray-200 bg-gray-50">
-            <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                <h3 class="text-lg font-semibold text-gray-900">System Management</h3>
+                
+                <!-- Consolidated Controls -->
                 <div class="flex flex-col sm:flex-row sm:items-center gap-4">
+                    <!-- Filters -->
                     <div class="flex items-center gap-3">
-                        <label class="text-sm font-medium text-gray-700 whitespace-nowrap">Filter by:</label>
-                        <select id="filterType" class="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white hover:border-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors min-w-[140px]">
+                        <label class="text-sm font-medium text-gray-700 whitespace-nowrap">Filter:</label>
+                        <select id="filterType" class="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white hover:border-gray-400 focus:ring-2 focus:ring-thermeleon-500 focus:border-thermeleon-500 transition-colors min-w-[140px]">
                             <option value="">All Types</option>
                             <option value="greenhouse">Greenhouses</option>
                             <option value="sensor">Sensors</option>
-                            <option value="data">Data Records</option>
                             <option value="user">Users</option>
                             <option value="company">Companies</option>
                             <option value="position">Positions</option>
                         </select>
                     </div>
-                    <div class="flex items-center gap-3">
-                        <label class="text-sm font-medium text-gray-700 whitespace-nowrap">Search:</label>
-                        <input type="text" id="searchInput" placeholder="Search entities..." class="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white hover:border-gray-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors min-w-[200px]">
+                    
+                    <!-- Search -->
+                    <div class="flex items-center gap-2">
+                        <input type="text" id="searchInput" placeholder="Search entities..." class="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white hover:border-gray-400 focus:ring-2 focus:ring-thermeleon-500 focus:border-thermeleon-500 transition-colors min-w-[200px]">
+                    </div>
+                    
+                    <!-- Action Buttons -->
+                    <div class="flex items-center gap-2">
+                        <button id="refreshButton" onclick="refreshData()" title="Refresh Data" class="p-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors duration-200 border border-gray-300 disabled:opacity-50 disabled:cursor-not-allowed">
+                            <svg id="refreshIcon" class="w-4 h-4 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                            </svg>
+                        </button>
+                        
+                        <?php if ($permissionService->canCreateEntities()): ?>
+                        <button onclick="showAddEntityModal()" title="Add New Entity" class="p-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors duration-200 border border-green-500">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                            </svg>
+                        </button>
+                        <?php endif; ?>
                     </div>
                 </div>
-                <?php if ($permissionService->canCreateEntities()): ?>
-                <button onclick="showAddEntityModal()" class="px-6 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600 transition-colors duration-200 text-sm font-medium shadow-sm flex items-center justify-center">
-                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
-                    </svg>
-                    Add New Entity
-                </button>
-                <?php endif; ?>
             </div>
         </div>
         
-        <div class="overflow-x-auto">
+        <div class="overflow-x-auto border border-gray-200 rounded-lg shadow-sm">
             <table class="w-full" id="entityTable">
-                <thead class="bg-gray-50">
+                <thead class="bg-gradient-to-r from-gray-50 to-gray-100 sticky top-0 z-10 border-b border-gray-200">
                     <tr>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name/ID</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Details</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Updated</th>
-                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                        <th class="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Type</th>
+                        <th class="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Name</th>
+                        <th class="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Details</th>
+                        <th class="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Status</th>
+                        <th class="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Last Updated</th>
+                        <th class="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">Actions</th>
                     </tr>
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-200" id="entityTableBody">
@@ -168,6 +155,44 @@ try {
                     </tr>
                 </tbody>
             </table>
+        </div>
+        
+        <!-- Pagination Controls -->
+        <div class="px-6 py-4 border-t border-gray-200 bg-gradient-to-r from-gray-50 to-gray-100">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div class="flex flex-col sm:flex-row sm:items-center gap-4">
+                    <div class="flex items-center gap-2">
+                        <label class="text-sm font-medium text-gray-700">Items per page:</label>
+                        <select id="itemsPerPage" class="px-3 py-1 border border-gray-300 rounded-lg text-sm bg-white hover:border-gray-400 focus:ring-2 focus:ring-thermeleon-500 focus:border-thermeleon-500 transition-colors">
+                            <option value="10" selected>10</option>
+                            <option value="25">25</option>
+                            <option value="50">50</option>
+                            <option value="100">100</option>
+                        </select>
+                    </div>
+                    <div class="text-sm text-gray-600">
+                        Showing <span id="showingStart" class="font-semibold text-gray-900">0</span> to <span id="showingEnd" class="font-semibold text-gray-900">0</span> of <span id="totalItems" class="font-semibold text-gray-900">0</span> entries
+                    </div>
+                </div>
+                
+                <div class="flex items-center gap-2">
+                    <button id="prevPage" onclick="platformManager.previousPage()" class="px-3 py-2 text-sm border border-gray-300 rounded-lg bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-1" disabled>
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                        </svg>
+                        Previous
+                    </button>
+                    <div id="pageNumbers" class="flex items-center gap-1">
+                        <!-- Page numbers will be inserted here -->
+                    </div>
+                    <button id="nextPage" onclick="platformManager.nextPage()" class="px-3 py-2 text-sm border border-gray-300 rounded-lg bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-1" disabled>
+                        Next
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
         </div>
     </div>
 </div>
@@ -490,6 +515,22 @@ try {
     </div>
 </div>
 
+<style>
+/* Custom spinning animation for refresh icon */
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.animate-spin {
+    animation: spin 1s linear infinite;
+}
+</style>
+
 <script>
 // Pass PHP permission data to JavaScript
 window.platformPermissions = {
@@ -505,6 +546,7 @@ window.platformPermissions = {
 class PlatformManager {
     constructor() {
         this.entities = [];
+        this.filteredEntities = [];
         this.cache = new Map();
         this.pendingRequests = new Set();
         this.isLoading = false;
@@ -514,8 +556,15 @@ class PlatformManager {
         this.positions = [];
         this.permissions = window.platformPermissions;
         
+        // Pagination properties
+        this.currentPage = 1;
+        this.itemsPerPage = 10;
+        this.totalPages = 0;
+        this.totalItems = 0;
+        
         this.initializeFilters();
         this.setupEventListeners();
+        this.initializePagination();
     }
 
     /**
@@ -560,7 +609,7 @@ class PlatformManager {
     }
 
     /**
-     * Lazy load data only when needed
+     * Load data with server-side pagination
      */
     async loadSystemData(force = false) {
         // Prevent duplicate loads unless forced
@@ -572,9 +621,12 @@ class PlatformManager {
         this.showLoadingState();
 
         try {
-            // Load data in batches for better performance
-            // await this.loadCoreData();
-            await this.loadExtendedData();
+            // Get current filter and search parameters
+            const filterType = document.getElementById('filterType')?.value || '';
+            const searchTerm = document.getElementById('searchInput')?.value || '';
+            
+            // Load data with pagination parameters
+            await this.loadPaginatedData(filterType, searchTerm);
             
             this.renderEntityTable();
             this.lastLoadTime = Date.now();
@@ -588,112 +640,238 @@ class PlatformManager {
     }
 
     /**
-     * Load core data first (most important)
+     * Load paginated data from server with SQL-level pagination
      */
-    async loadCoreData() {
-        this.entities = [];
-        
+    async loadPaginatedData(filterType = '', searchTerm = '') {
         try {
-            // Load greenhouses and sensors in parallel
-            const [sensorsData, greenhousesData] = await Promise.all([
-                this.makeRequest('api/sensors.php'),
-                this.makeRequest('api/sensors.php?greenhouse_list=1')
-            ]);
-        
-            // Process greenhouses
-            if (Array.isArray(greenhousesData)) {
-                greenhousesData.forEach(greenhouse => {
-                    this.entities.push({
-                    type: 'greenhouse',
-                    id: greenhouse.id || greenhouse.Id_greenhouse,
-                    name: greenhouse.name || greenhouse.Name_greenhouse,
-                    details: `Company ID: ${greenhouse.Id_company || 'N/A'} | Size: ${greenhouse.X_max || 'N/A'}x${greenhouse.Y_max || 'N/A'}`,
-                    status: 'Active',
-                    lastUpdated: greenhouse.created_at || new Date().toISOString()
-                });
+            // Reset entities for this page
+            this.entities = [];
+            
+            // Build pagination parameters
+            const params = new URLSearchParams({
+                page: this.currentPage.toString(),
+                limit: this.itemsPerPage.toString(),
+                filter_type: filterType,
+                search: searchTerm
             });
-        }
-        
-            // Process sensors
-            if (Array.isArray(sensorsData) && sensorsData.length > 0) {
-                sensorsData.forEach(sensor => {
-                    this.entities.push({
-                    type: 'sensor',
-                    id: sensor.id || sensor.Id_sensor,
-                    name: sensor.name || sensor.Name_sensor,
-                    details: `Description: ${sensor.description || sensor.Description || 'N/A'} | Greenhouse: ${sensor.Id_greenhouse || 'N/A'}`,
-                    status: sensor.enabled || sensor.Enabled ? 'Active' : 'Inactive',
-                    lastUpdated: sensor.Last_update || sensor.created_at || new Date().toISOString()
-                });
-            });
-        }
-
-            // Render partial data immediately
-            this.renderEntityTable();
+            
+            // Load paginated data from server
+            const response = await this.makeRequest(`api/platform-data.php?${params.toString()}`);
+            
+            if (response && response.success) {
+                this.entities = response.data || [];
+                this.totalItems = response.total || 0;
+                this.totalPages = Math.ceil(this.totalItems / this.itemsPerPage);
+            } else {
+                // Fallback to individual API calls if unified endpoint not available
+                await this.loadDataFromSeparateEndpoints(filterType, searchTerm);
+            }
             
         } catch (error) {
-            console.error('Error loading core data:', error);
+            console.error('Error loading paginated data:', error);
+            // Fallback to separate endpoints
+            await this.loadDataFromSeparateEndpoints(filterType, searchTerm);
         }
     }
 
     /**
-     * Load extended data (users, companies, etc.) after core data
+     * Fallback method using separate API endpoints with pagination
      */
-    async loadExtendedData() {
+    async loadDataFromSeparateEndpoints(filterType = '', searchTerm = '') {
         try {
-            // Load users data
-            const usersResponse = await this.makeRequest('api/users.php?type=all');
+            this.entities = [];
+            this.totalItems = 0;
             
-            if (usersResponse && usersResponse.success) {
-                const usersData = usersResponse.data;
-        
-        // Add users
-                if (usersData.users && Array.isArray(usersData.users)) {
-            usersData.users.forEach(user => {
-                        this.entities.push({
-                    type: 'user',
-                    id: user.id_user,
-                    name: user.name_user,
-                    details: `Email: ${user.email_user || 'N/A'} | Company: ${user.company_name || 'N/A'}`,
-                    status: user.status_user === 'active' ? 'Active' : 'Inactive',
-                    lastUpdated: user.created_at || new Date().toISOString()
-                });
-            });
-        }
-        
-        // Add companies
-                if (usersData.companies && Array.isArray(usersData.companies)) {
-            usersData.companies.forEach(company => {
-                        this.entities.push({
-                    type: 'company',
-                    id: company.id_company,
-                    name: company.name_company,
-                    details: `Users: ${company.user_count}`,
-                    status: company.status_company === 'active' ? 'Active' : 'Inactive',
-                    lastUpdated: company.created_at || new Date().toISOString()
-                });
-            });
-        }
-        
-        // Add positions
-                if (usersData.positions && Array.isArray(usersData.positions)) {
-            usersData.positions.forEach(position => {
-                        this.entities.push({
-                    type: 'position',
-                    id: position.id_position,
-                    name: position.name_position,
-                    details: `Users: ${position.user_count}`,
-                    status: position.status_position === 'active' ? 'Active' : 'Inactive',
-                    lastUpdated: position.created_at || new Date().toISOString()
-                });
-            });
-        }
+            // Calculate offset for SQL queries
+            const offset = (this.currentPage - 1) * this.itemsPerPage;
+            
+            // Load different data types based on filter
+            if (!filterType || filterType === 'greenhouse') {
+                await this.loadGreenhousesWithPagination(offset, searchTerm);
             }
-        
+            
+            if (!filterType || filterType === 'sensor') {
+                await this.loadSensorsWithPagination(offset, searchTerm);
+            }
+            
+            if (!filterType || filterType === 'user') {
+                await this.loadUsersWithPagination(offset, searchTerm);
+            }
+            
+            if (!filterType || filterType === 'company') {
+                await this.loadCompaniesWithPagination(offset, searchTerm);
+            }
+            
+            if (!filterType || filterType === 'position') {
+                await this.loadPositionsWithPagination(offset, searchTerm);
+            }
+            
+            // Calculate total pages based on loaded data
+            this.totalPages = Math.ceil(this.totalItems / this.itemsPerPage);
+            
         } catch (error) {
-            console.error('Error loading extended data:', error);
+            console.error('Error loading data from separate endpoints:', error);
         }
     }
+
+    async loadGreenhousesWithPagination(offset, searchTerm) {
+        try {
+            const params = new URLSearchParams({
+                greenhouse_list: '1',
+                limit: this.itemsPerPage.toString(),
+                offset: offset.toString(),
+                search: searchTerm
+            });
+            
+            const response = await this.makeRequest(`api/sensors.php?${params.toString()}`);
+            
+            if (Array.isArray(response)) {
+                response.forEach(greenhouse => {
+                    this.entities.push({
+                        type: 'greenhouse',
+                        id: greenhouse.id || greenhouse.Id_greenhouse,
+                        name: greenhouse.name || greenhouse.Name_greenhouse,
+                        details: `Company ID: ${greenhouse.Id_company || 'N/A'} | Size: ${greenhouse.X_max || 'N/A'}x${greenhouse.Y_max || 'N/A'}`,
+                        status: 'Active',
+                        lastUpdated: greenhouse.created_at || new Date().toISOString()
+                    });
+                });
+                
+                // Get total count for greenhouses
+                const countResponse = await this.makeRequest('api/sensors.php?greenhouse_count=1&search=' + encodeURIComponent(searchTerm));
+                this.totalItems += (countResponse && countResponse.count) ? countResponse.count : response.length;
+            }
+        } catch (error) {
+            console.error('Error loading greenhouses with pagination:', error);
+        }
+    }
+
+    async loadSensorsWithPagination(offset, searchTerm) {
+        try {
+            const params = new URLSearchParams({
+                paginated: '1',
+                limit: this.itemsPerPage.toString(),
+                offset: offset.toString(),
+                search: searchTerm
+            });
+            
+            const response = await this.makeRequest(`api/sensors.php?${params.toString()}`);
+            
+            if (Array.isArray(response)) {
+                response.forEach(sensor => {
+                    this.entities.push({
+                        type: 'sensor',
+                        id: sensor.id || sensor.Id_sensor,
+                        name: sensor.name || sensor.Name_sensor,
+                        details: `Description: ${sensor.description || sensor.Description || 'N/A'} | Greenhouse: ${sensor.Id_greenhouse || 'N/A'}`,
+                        status: sensor.enabled || sensor.Enabled ? 'Active' : 'Inactive',
+                        lastUpdated: sensor.Last_update || sensor.created_at || new Date().toISOString()
+                    });
+                });
+                
+                // Get total count for sensors
+                const countResponse = await this.makeRequest('api/sensors.php?count=1&search=' + encodeURIComponent(searchTerm));
+                this.totalItems += (countResponse && countResponse.count) ? countResponse.count : response.length;
+            }
+        } catch (error) {
+            console.error('Error loading sensors with pagination:', error);
+        }
+    }
+
+    async loadUsersWithPagination(offset, searchTerm) {
+        try {
+            const params = new URLSearchParams({
+                type: 'users',
+                paginated: '1',
+                limit: this.itemsPerPage.toString(),
+                offset: offset.toString(),
+                search: searchTerm
+            });
+            
+            const response = await this.makeRequest(`api/users.php?${params.toString()}`);
+            
+            if (response && response.success && Array.isArray(response.data)) {
+                response.data.forEach(user => {
+                    this.entities.push({
+                        type: 'user',
+                        id: user.id_user,
+                        name: user.name_user,
+                        details: `Email: ${user.email_user || 'N/A'} | Company: ${user.company_name || 'N/A'}`,
+                        status: user.status_user === 'active' ? 'Active' : 'Inactive',
+                        lastUpdated: user.created_at || new Date().toISOString()
+                    });
+                });
+                
+                this.totalItems += response.total || response.data.length;
+            }
+        } catch (error) {
+            console.error('Error loading users with pagination:', error);
+        }
+    }
+
+    async loadCompaniesWithPagination(offset, searchTerm) {
+        try {
+            const params = new URLSearchParams({
+                type: 'companies',
+                paginated: '1',
+                limit: this.itemsPerPage.toString(),
+                offset: offset.toString(),
+                search: searchTerm
+            });
+            
+            const response = await this.makeRequest(`api/users.php?${params.toString()}`);
+            
+            if (response && response.success && Array.isArray(response.data)) {
+                response.data.forEach(company => {
+                    this.entities.push({
+                        type: 'company',
+                        id: company.id_company,
+                        name: company.name_company,
+                        details: `Users: ${company.user_count}`,
+                        status: company.status_company === 'active' ? 'Active' : 'Inactive',
+                        lastUpdated: company.created_at || new Date().toISOString()
+                    });
+                });
+                
+                this.totalItems += response.total || response.data.length;
+            }
+        } catch (error) {
+            console.error('Error loading companies with pagination:', error);
+        }
+    }
+
+    async loadPositionsWithPagination(offset, searchTerm) {
+        try {
+            const params = new URLSearchParams({
+                type: 'positions',
+                paginated: '1',
+                limit: this.itemsPerPage.toString(),
+                offset: offset.toString(),
+                search: searchTerm
+            });
+            
+            const response = await this.makeRequest(`api/users.php?${params.toString()}`);
+            
+            if (response && response.success && Array.isArray(response.data)) {
+                response.data.forEach(position => {
+                    this.entities.push({
+                        type: 'position',
+                        id: position.id_position,
+                        name: position.name_position,
+                        details: `Users: ${position.user_count}`,
+                        status: position.status_position === 'active' ? 'Active' : 'Inactive',
+                        lastUpdated: position.created_at || new Date().toISOString()
+                    });
+                });
+                
+                this.totalItems += response.total || response.data.length;
+            }
+        } catch (error) {
+            console.error('Error loading positions with pagination:', error);
+        }
+    }
+
+
 
     /**
      * Lazy load data records separately
@@ -757,71 +935,75 @@ class PlatformManager {
     }
 
     renderEntityTable() {
-    const tbody = document.getElementById('entityTableBody');
-    if (!tbody) return;
-    
+        const tbody = document.getElementById('entityTableBody');
+        if (!tbody) return;
+        
         if (this.entities.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-4 text-center text-gray-500">No data found</td></tr>';
-        return;
+            tbody.innerHTML = '<tr><td colspan="6" class="px-6 py-4 text-center text-gray-500">No data found</td></tr>';
+            this.updatePaginationInfo(0, 0, 0);
+            return;
+        }
+        
+        // Since filtering and pagination is now handled server-side,
+        // we just render the entities directly from the server response
+        this.filteredEntities = this.entities;
+        
+        // Sort entities by type and then by name for better organization
+        this.filteredEntities.sort((a, b) => {
+            if (a.type !== b.type) {
+                return a.type.localeCompare(b.type);
+            }
+            return a.name.localeCompare(b.name);
+        });
+        
+        // Render table rows directly (no client-side pagination)
+        tbody.innerHTML = this.filteredEntities.map(entity => `
+                <tr class="hover:bg-gray-50">
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${this.getTypeColor(entity.type)}">
+                            ${entity.type.charAt(0).toUpperCase() + entity.type.slice(1)}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                        ${entity.name}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        ${entity.details}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${this.getStatusColor(entity.status)}">
+                            ${entity.status}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        ${this.formatDate(entity.lastUpdated)}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <button onclick="platformManager.viewEntity('${entity.type}', '${entity.id}')" class="text-thermeleon-600 hover:text-thermeleon-900 mr-3">View</button>
+                        ${entity.type === 'user' && this.permissions.canManageUsers ? 
+                            `${this.permissions.canChangeUserPasswords ? `<button onclick="platformManager.changePassword('${entity.id}', '${entity.name}')" class="text-purple-600 hover:text-purple-900 mr-3">Change Password</button>` : ''}
+                             ${this.permissions.canResetPasswords ? `<button onclick="platformManager.resetPassword('${entity.id}', '${entity.name}')" class="text-orange-600 hover:text-orange-900 mr-3">Reset Password</button>` : ''}
+                             <button onclick="platformManager.toggleEntityStatus('${entity.type}', '${entity.id}', '${entity.status}')" class="text-blue-600 hover:text-blue-900 mr-3">${entity.status === 'Active' ? 'Deactivate' : 'Activate'}</button>
+                             ${this.permissions.canDeleteEntities ? `<button onclick="platformManager.deleteEntity('${entity.type}', '${entity.id}')" class="text-red-600 hover:text-red-900">Delete</button>` : ''}` :
+                            ['company', 'position'].includes(entity.type) && this.permissions.canManageUsers ?
+                                `<button onclick="platformManager.toggleEntityStatus('${entity.type}', '${entity.id}', '${entity.status}')" class="text-blue-600 hover:text-blue-900 mr-3">${entity.status === 'Active' ? 'Deactivate' : 'Activate'}</button>
+                                 ${this.permissions.canDeleteEntities ? `<button onclick="platformManager.deleteEntity('${entity.type}', '${entity.id}')" class="text-red-600 hover:text-red-900">Delete</button>` : ''}` :
+                                entity.type === 'user' || ['company', 'position'].includes(entity.type) ?
+                                    '<span class="text-gray-400 text-sm">Limited access</span>' :
+                                    `<button onclick="platformManager.editEntity('${entity.type}', '${entity.id}')" class="text-indigo-600 hover:text-indigo-900">Edit</button>`
+                        }
+                    </td>
+                </tr>
+            `).join('');
+        
+        // Update pagination controls
+        this.updatePaginationControls();
+        
+        // Update pagination info based on server response
+        const startIndex = (this.currentPage - 1) * this.itemsPerPage + 1;
+        const endIndex = Math.min(startIndex + this.entities.length - 1, this.totalItems || this.entities.length);
+        this.updatePaginationInfo(startIndex, endIndex, this.totalItems || this.entities.length);
     }
-    
-    // Apply filters
-    const filterType = document.getElementById('filterType')?.value || '';
-    const searchTerm = document.getElementById('searchInput')?.value.toLowerCase() || '';
-    
-        let filteredEntities = this.entities;
-    
-    if (filterType) {
-        filteredEntities = filteredEntities.filter(entity => entity.type === filterType);
-    }
-    
-    if (searchTerm) {
-        filteredEntities = filteredEntities.filter(entity => 
-            entity.name.toLowerCase().includes(searchTerm) ||
-            entity.details.toLowerCase().includes(searchTerm)
-        );
-    }
-    
-    // Render table rows
-    tbody.innerHTML = filteredEntities.map(entity => `
-        <tr class="hover:bg-gray-50">
-            <td class="px-6 py-4 whitespace-nowrap">
-                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${this.getTypeColor(entity.type)}">
-                    ${entity.type.charAt(0).toUpperCase() + entity.type.slice(1)}
-                </span>
-            </td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                ${entity.name}
-            </td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                ${entity.details}
-            </td>
-            <td class="px-6 py-4 whitespace-nowrap">
-                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${this.getStatusColor(entity.status)}">
-                    ${entity.status}
-                </span>
-            </td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    ${this.formatDate(entity.lastUpdated)}
-            </td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <button onclick="platformManager.viewEntity('${entity.type}', '${entity.id}')" class="text-thermeleon-600 hover:text-thermeleon-900 mr-3">View</button>
-                ${entity.type === 'user' && this.permissions.canManageUsers ? 
-                        `${this.permissions.canChangeUserPasswords ? `<button onclick="platformManager.changePassword('${entity.id}', '${entity.name}')" class="text-purple-600 hover:text-purple-900 mr-3">Change Password</button>` : ''}
-                         ${this.permissions.canResetPasswords ? `<button onclick="platformManager.resetPassword('${entity.id}', '${entity.name}')" class="text-orange-600 hover:text-orange-900 mr-3">Reset Password</button>` : ''}
-                         <button onclick="platformManager.toggleEntityStatus('${entity.type}', '${entity.id}', '${entity.status}')" class="text-blue-600 hover:text-blue-900 mr-3">${entity.status === 'Active' ? 'Deactivate' : 'Activate'}</button>
-                         ${this.permissions.canDeleteEntities ? `<button onclick="platformManager.deleteEntity('${entity.type}', '${entity.id}')" class="text-red-600 hover:text-red-900">Delete</button>` : ''}` :
-                    ['company', 'position'].includes(entity.type) && this.permissions.canManageUsers ?
-                        `<button onclick="platformManager.toggleEntityStatus('${entity.type}', '${entity.id}', '${entity.status}')" class="text-blue-600 hover:text-blue-900 mr-3">${entity.status === 'Active' ? 'Deactivate' : 'Activate'}</button>
-                         ${this.permissions.canDeleteEntities ? `<button onclick="platformManager.deleteEntity('${entity.type}', '${entity.id}')" class="text-red-600 hover:text-red-900">Delete</button>` : ''}` :
-                        entity.type === 'user' || ['company', 'position'].includes(entity.type) ?
-                            '<span class="text-gray-400 text-sm">Limited access</span>' :
-                            `<button onclick="platformManager.editEntity('${entity.type}', '${entity.id}')" class="text-indigo-600 hover:text-indigo-900">Edit</button>`
-                }
-            </td>
-        </tr>
-    `).join('');
-}
 
     getTypeColor(type) {
         const colors = {
@@ -845,42 +1027,167 @@ class PlatformManager {
 }
 
     formatDate(dateString) {
-    if (!dateString) return 'N/A';
-    try {
-        const date = new Date(dateString);
-        return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
-    } catch (error) {
-        return 'N/A';
+        if (!dateString) return 'N/A';
+        try {
+            const date = new Date(dateString);
+            return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+        } catch (error) {
+            return 'N/A';
+        }
     }
-}
 
     /**
-     * Debounced refresh to prevent rapid successive calls
+     * Pagination methods
+     */
+    updatePaginationControls() {
+        const prevButton = document.getElementById('prevPage');
+        const nextButton = document.getElementById('nextPage');
+        const pageNumbers = document.getElementById('pageNumbers');
+        
+        if (prevButton) {
+            prevButton.disabled = this.currentPage <= 1;
+        }
+        
+        if (nextButton) {
+            nextButton.disabled = this.currentPage >= this.totalPages;
+        }
+        
+        if (pageNumbers) {
+            pageNumbers.innerHTML = this.generatePageNumbers();
+        }
+    }
+
+    generatePageNumbers() {
+        if (this.totalPages <= 1) return '';
+        
+        let html = '';
+        const maxVisiblePages = 5;
+        let startPage = Math.max(1, this.currentPage - Math.floor(maxVisiblePages / 2));
+        let endPage = Math.min(this.totalPages, startPage + maxVisiblePages - 1);
+        
+        // Adjust start page if we're near the end
+        if (endPage - startPage < maxVisiblePages - 1) {
+            startPage = Math.max(1, endPage - maxVisiblePages + 1);
+        }
+        
+        // First page and ellipsis
+        if (startPage > 1) {
+            html += `<button onclick="platformManager.goToPage(1)" class="px-3 py-2 text-sm border border-gray-300 rounded-lg bg-white hover:bg-gray-50 transition-colors">1</button>`;
+            if (startPage > 2) {
+                html += '<span class="px-2 py-2 text-sm text-gray-500">...</span>';
+            }
+        }
+        
+        // Page numbers
+        for (let i = startPage; i <= endPage; i++) {
+            const isActive = i === this.currentPage;
+            html += `<button onclick="platformManager.goToPage(${i})" class="px-3 py-2 text-sm border border-gray-300 rounded-lg transition-colors ${
+                isActive 
+                    ? 'bg-thermeleon-500 text-white border-thermeleon-500 shadow-sm' 
+                    : 'bg-white hover:bg-gray-50'
+            }">${i}</button>`;
+        }
+        
+        // Last page and ellipsis
+        if (endPage < this.totalPages) {
+            if (endPage < this.totalPages - 1) {
+                html += '<span class="px-2 py-2 text-sm text-gray-500">...</span>';
+            }
+            html += `<button onclick="platformManager.goToPage(${this.totalPages})" class="px-3 py-2 text-sm border border-gray-300 rounded-lg bg-white hover:bg-gray-50 transition-colors">${this.totalPages}</button>`;
+        }
+        
+        return html;
+    }
+
+    updatePaginationInfo(start, end, total) {
+        const showingStart = document.getElementById('showingStart');
+        const showingEnd = document.getElementById('showingEnd');
+        const totalItems = document.getElementById('totalItems');
+        
+        if (showingStart) showingStart.textContent = start;
+        if (showingEnd) showingEnd.textContent = end;
+        if (totalItems) totalItems.textContent = total;
+    }
+
+    goToPage(page) {
+        if (page >= 1 && page <= this.totalPages && page !== this.currentPage) {
+            this.currentPage = page;
+            this.loadSystemData(true); // Reload with new page
+        }
+    }
+
+    previousPage() {
+        if (this.currentPage > 1) {
+            this.currentPage--;
+            this.loadSystemData(true); // Reload with new page
+        }
+    }
+
+    nextPage() {
+        if (this.currentPage < this.totalPages) {
+            this.currentPage++;
+            this.loadSystemData(true); // Reload with new page
+        }
+    }
+
+    /**
+     * Refresh data with visual feedback
      */
     refreshData() {
+        // Prevent multiple simultaneous refreshes
+        if (this.isLoading) {
+            return;
+        }
+
+        // Add visual feedback
+        const refreshButton = document.getElementById('refreshButton');
+        const refreshIcon = document.getElementById('refreshIcon');
+        
+        if (refreshButton && refreshIcon) {
+            refreshButton.disabled = true;
+            refreshIcon.classList.add('animate-spin');
+        }
+
+        // Clear any existing timeout
         if (this.refreshTimeout) {
             clearTimeout(this.refreshTimeout);
-}
+        }
 
-        this.refreshTimeout = setTimeout(() => {
-            this.loadSystemData(true);
+        this.refreshTimeout = setTimeout(async () => {
+            try {
+                this.currentPage = 1; // Reset to first page on refresh
+                await this.loadSystemData(true);
+            } finally {
+                // Remove visual feedback
+                if (refreshButton && refreshIcon) {
+                    refreshButton.disabled = false;
+                    refreshIcon.classList.remove('animate-spin');
+                }
+            }
         }, 300);
-}
+    }
 
     initializeFilters() {
-    const filterType = document.getElementById('filterType');
-    const searchInput = document.getElementById('searchInput');
-    
-    if (filterType) {
-            filterType.addEventListener('change', () => this.renderEntityTable());
-    }
-    
-    if (searchInput) {
-            // Debounce search input
+        const filterType = document.getElementById('filterType');
+        const searchInput = document.getElementById('searchInput');
+        
+        // Filter type dropdown
+        if (filterType) {
+            filterType.addEventListener('change', () => {
+                this.currentPage = 1; // Reset to first page on filter change
+                this.loadSystemData(true); // Reload with new filter
+            });
+        }
+        
+        // Search input with debounce
+        if (searchInput) {
             let searchTimeout;
             searchInput.addEventListener('input', () => {
                 clearTimeout(searchTimeout);
-                searchTimeout = setTimeout(() => this.renderEntityTable(), 300);
+                searchTimeout = setTimeout(() => {
+                    this.currentPage = 1; // Reset to first page on search
+                    this.loadSystemData(true); // Reload with new search term
+                }, 300);
             });
         }
     }
@@ -900,6 +1207,17 @@ class PlatformManager {
         const changePasswordForm = document.getElementById('changePasswordForm');
         if (changePasswordForm) {
             changePasswordForm.addEventListener('submit', (e) => this.handleChangePassword(e));
+        }
+    }
+
+    initializePagination() {
+        const itemsPerPageSelect = document.getElementById('itemsPerPage');
+        if (itemsPerPageSelect) {
+            itemsPerPageSelect.addEventListener('change', () => {
+                this.itemsPerPage = parseInt(itemsPerPageSelect.value);
+                this.currentPage = 1; // Reset to first page
+                this.loadSystemData(true); // Reload with new page size
+            });
         }
     }
 
@@ -1307,6 +1625,11 @@ function refreshData() {
         window.platformManager.refreshData();
     } else {
         console.warn('Platform manager not initialized');
+        // Try to initialize if not available
+        initializePlatformManager();
+        if (window.platformManager) {
+            window.platformManager.refreshData();
+        }
     }
 }
 

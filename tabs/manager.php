@@ -260,6 +260,16 @@ try {
                         <div class="text-xs text-gray-500">Configure alert thresholds</div>
                     </div>
                 </button>
+                
+                <button onclick="manageSensorModels()" class="w-full flex items-center px-4 py-3 text-left bg-purple-50 rounded-lg hover:bg-purple-100 transition-colors duration-200">
+                    <svg class="w-5 h-5 text-purple-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"></path>
+                    </svg>
+                    <div>
+                        <div class="text-sm font-medium text-gray-900">Manage Sensor Models</div>
+                        <div class="text-xs text-gray-500">Add, edit, delete sensor models</div>
+                    </div>
+                </button>
             </div>
         </div>
     </div>
@@ -300,6 +310,41 @@ try {
     </div>
 </div>
 
+<!-- Sensor Models Management Section -->
+<div id="sensorModelsSection" class="mt-8 hidden">
+    <div class="bg-white rounded-lg border border-gray-200 shadow-sm">
+        <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+            <h3 class="text-lg font-semibold text-gray-900">Sensor Models Management</h3>
+            <div class="flex space-x-3">
+                <button onclick="showAddSensorModelModal()" class="px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors duration-200 flex items-center">
+                    <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                    </svg>
+                    Add Model
+                </button>
+                <button onclick="hideSensorModelsSection()" class="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors duration-200">
+                    Close
+                </button>
+            </div>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Brand</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Model</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="sensorModelsTableBody" class="bg-white divide-y divide-gray-200">
+                    <!-- Sensor models will be loaded here -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
 <!-- Add Greenhouse Modal -->
 <div id="addGreenhouseModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden z-50">
     <div class="flex items-center justify-center min-h-screen p-4">
@@ -314,8 +359,10 @@ try {
                 </div>
                 
                 <div class="mb-4">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Company ID:</label>
-                    <input type="number" id="greenhouseCompanyId" class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white hover:border-gray-400 focus:ring-2 focus:ring-thermeleon-500 focus:border-thermeleon-500 transition-colors" required>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Company:</label>
+                    <select id="greenhouseCompanyId" class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white hover:border-gray-400 focus:ring-2 focus:ring-thermeleon-500 focus:border-thermeleon-500 transition-colors" required>
+                        <option value="">Select a company...</option>
+                    </select>
                 </div>
                 
                 <div class="grid grid-cols-2 gap-4 mb-4">
@@ -361,9 +408,10 @@ try {
                 </div>
                 
                 <div class="mb-4">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Sensor Model ID:</label>
-                    <input type="number" id="sensorModelId" class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white hover:border-gray-400 focus:ring-2 focus:ring-thermeleon-500 focus:border-thermeleon-500 transition-colors" required value="1" min="1">
-                    <p class="text-xs text-gray-500 mt-1">Default sensor model ID (you can change this if needed)</p>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Sensor Model:</label>
+                    <select id="sensorModelId" class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white hover:border-gray-400 focus:ring-2 focus:ring-thermeleon-500 focus:border-thermeleon-500 transition-colors" required>
+                        <option value="">Select a sensor model...</option>
+                    </select>
                 </div>
                 
                 <div class="mb-4">
@@ -401,8 +449,10 @@ try {
                 </div>
                 
                 <div class="mb-4">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">Company ID:</label>
-                    <input type="number" id="editGreenhouseCompanyId" class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white hover:border-gray-400 focus:ring-2 focus:ring-thermeleon-500 focus:border-thermeleon-500 transition-colors" required>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Company:</label>
+                    <select id="editGreenhouseCompanyId" class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white hover:border-gray-400 focus:ring-2 focus:ring-thermeleon-500 focus:border-thermeleon-500 transition-colors" required>
+                        <option value="">Select a company...</option>
+                    </select>
                 </div>
                 
                 <div class="grid grid-cols-2 gap-4 mb-4">
@@ -422,6 +472,83 @@ try {
                     </button>
                     <button type="button" onclick="handleEditGreenhouseSubmit(event)" class="px-4 py-2 bg-thermeleon-500 text-white rounded-lg hover:bg-thermeleon-600">
                         Update Greenhouse
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Sensor Model Modal -->
+<div id="addSensorModelModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden z-50">
+    <div class="flex items-center justify-center min-h-screen p-4">
+        <div class="bg-white rounded-lg shadow-xl max-w-md w-full">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h3 class="text-lg font-semibold text-gray-900">Add New Sensor Model</h3>
+            </div>
+            <div class="p-6">
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Brand:</label>
+                    <input type="text" id="sensorModelBrand" class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white hover:border-gray-400 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors" required>
+                </div>
+                
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Model:</label>
+                    <input type="text" id="sensorModelModel" class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white hover:border-gray-400 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors" required>
+                </div>
+                
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Sensor Type:</label>
+                    <select id="sensorModelTypeId" class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white hover:border-gray-400 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors" required>
+                        <option value="">Select a sensor type...</option>
+                    </select>
+                </div>
+                
+                <div class="flex justify-end space-x-3">
+                    <button type="button" onclick="closeAddSensorModelModal()" class="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50">
+                        Cancel
+                    </button>
+                    <button type="button" onclick="handleAddSensorModelSubmit(event)" class="px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600">
+                        Add Model
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Sensor Model Modal -->
+<div id="editSensorModelModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden z-50">
+    <div class="flex items-center justify-center min-h-screen p-4">
+        <div class="bg-white rounded-lg shadow-xl max-w-md w-full">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <h3 class="text-lg font-semibold text-gray-900">Edit Sensor Model</h3>
+            </div>
+            <div class="p-6">
+                <input type="hidden" id="editSensorModelId">
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Brand:</label>
+                    <input type="text" id="editSensorModelBrand" class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white hover:border-gray-400 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors" required>
+                </div>
+                
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Model:</label>
+                    <input type="text" id="editSensorModelModel" class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white hover:border-gray-400 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors" required>
+                </div>
+                
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Sensor Type:</label>
+                    <select id="editSensorModelTypeId" class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white hover:border-gray-400 focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-colors" required>
+                        <option value="">Select a sensor type...</option>
+                    </select>
+                </div>
+                
+                <div class="flex justify-end space-x-3">
+                    <button type="button" onclick="closeEditSensorModelModal()" class="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50">
+                        Cancel
+                    </button>
+                    <button type="button" onclick="handleEditSensorModelSubmit(event)" class="px-4 py-2 bg-purple-500 text-white rounded-lg hover:bg-purple-600">
+                        Update Model
                     </button>
                 </div>
             </div>
@@ -568,6 +695,27 @@ function acknowledgeAlert(sensorId) {
 // Greenhouse Management Functions
 async function showAddGreenhouseModal() {
     const modal = document.getElementById('addGreenhouseModal');
+    
+    // Load company list for dropdown
+    try {
+        const response = await fetch('api/sensors.php?companies=1');
+        const companies = await response.json();
+        
+        const select = document.getElementById('greenhouseCompanyId');
+        select.innerHTML = '<option value="">Select a company...</option>';
+        
+        if (Array.isArray(companies)) {
+            companies.forEach(company => {
+                const option = document.createElement('option');
+                option.value = company.Id_company;
+                option.textContent = company.Name_company;
+                select.appendChild(option);
+            });
+        }
+    } catch (error) {
+        console.error('Error loading companies:', error);
+    }
+    
     modal.classList.remove('hidden');
 }
 
@@ -584,24 +732,43 @@ function closeAddGreenhouseModal() {
 async function showAddSensorModal() {
     const modal = document.getElementById('addSensorModal');
     
-    // Load greenhouse list for dropdown
+    // Load greenhouse list and sensor models for dropdowns
     try {
-        const response = await fetch('api/sensors.php?greenhouse_list=1');
-        const greenhouses = await response.json();
+        const [greenhousesResponse, modelsResponse] = await Promise.all([
+            fetch('api/sensors.php?greenhouse_list=1'),
+            fetch('api/sensors.php?sensor_models=1')
+        ]);
         
-        const select = document.getElementById('sensorGreenhouseId');
-        select.innerHTML = '<option value="">Select a greenhouse...</option>';
+        const greenhouses = await greenhousesResponse.json();
+        const sensorModels = await modelsResponse.json();
+        
+        // Populate greenhouse dropdown
+        const greenhouseSelect = document.getElementById('sensorGreenhouseId');
+        greenhouseSelect.innerHTML = '<option value="">Select a greenhouse...</option>';
         
         if (Array.isArray(greenhouses)) {
             greenhouses.forEach(greenhouse => {
                 const option = document.createElement('option');
                 option.value = greenhouse.Id_greenhouse;
                 option.textContent = greenhouse.Name_greenhouse;
-                select.appendChild(option);
+                greenhouseSelect.appendChild(option);
+            });
+        }
+        
+        // Populate sensor model dropdown
+        const modelSelect = document.getElementById('sensorModelId');
+        modelSelect.innerHTML = '<option value="">Select a sensor model...</option>';
+        
+        if (Array.isArray(sensorModels)) {
+            sensorModels.forEach(model => {
+                const option = document.createElement('option');
+                option.value = model.Id_sensor_model;
+                option.textContent = model.Name_sensor_model;
+                modelSelect.appendChild(option);
             });
         }
     } catch (error) {
-        console.error('Error loading greenhouses:', error);
+        console.error('Error loading data:', error);
     }
     
     modal.classList.remove('hidden');
@@ -613,21 +780,42 @@ function closeAddSensorModal() {
     // Clear form fields manually since we removed the form element
     document.getElementById('sensorName').value = '';
     document.getElementById('sensorDescription').value = '';
-    document.getElementById('sensorModelId').value = '1'; // Reset to default
+    document.getElementById('sensorModelId').value = '';
     document.getElementById('sensorGreenhouseId').value = '';
 }
 
 async function editGreenhouse(id, name) {
-    // Load greenhouse details
     try {
-        const response = await fetch(`api/sensors.php?greenhouse_list=1`);
-        const greenhouses = await response.json();
+        // Load both greenhouse details and company list
+        const [greenhousesResponse, companiesResponse] = await Promise.all([
+            fetch(`api/sensors.php?greenhouse_list=1`),
+            fetch('api/sensors.php?companies=1')
+        ]);
+        
+        const greenhouses = await greenhousesResponse.json();
+        const companies = await companiesResponse.json();
         const greenhouse = greenhouses.find(g => g.Id_greenhouse == id);
         
         if (greenhouse) {
+            // Populate company dropdown first
+            const companySelect = document.getElementById('editGreenhouseCompanyId');
+            companySelect.innerHTML = '<option value="">Select a company...</option>';
+            
+            if (Array.isArray(companies)) {
+                companies.forEach(company => {
+                    const option = document.createElement('option');
+                    option.value = company.Id_company;
+                    option.textContent = company.Name_company;
+                    if (company.Id_company == greenhouse.Id_company) {
+                        option.selected = true;
+                    }
+                    companySelect.appendChild(option);
+                });
+            }
+            
+            // Set other form values
             document.getElementById('editGreenhouseId').value = greenhouse.Id_greenhouse;
             document.getElementById('editGreenhouseName').value = greenhouse.Name_greenhouse;
-            document.getElementById('editGreenhouseCompanyId').value = greenhouse.Id_company;
             document.getElementById('editGreenhouseXMax').value = greenhouse.X_max || '';
             document.getElementById('editGreenhouseYMax').value = greenhouse.Y_max || '';
             
@@ -861,6 +1049,272 @@ async function handleEditGreenhouseSubmit(event) {
         } else {
             alert('Error updating greenhouse: ' + error.message);
         }
+    } finally {
+        submitButton.disabled = false;
+        submitButton.textContent = originalText;
+    }
+}
+
+// Sensor Model Management Functions
+async function manageSensorModels() {
+    const section = document.getElementById('sensorModelsSection');
+    section.classList.remove('hidden');
+    await loadSensorModels();
+}
+
+function hideSensorModelsSection() {
+    const section = document.getElementById('sensorModelsSection');
+    section.classList.add('hidden');
+}
+
+async function loadSensorModels() {
+    try {
+        const response = await fetch('api/sensors.php?sensor_models=1');
+        const sensorModels = await response.json();
+        
+        const tbody = document.getElementById('sensorModelsTableBody');
+        tbody.innerHTML = '';
+        
+        if (Array.isArray(sensorModels) && sensorModels.length > 0) {
+            sensorModels.forEach(model => {
+                const row = document.createElement('tr');
+                row.innerHTML = `
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="text-sm font-medium text-gray-900">${model.Brand}</div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="text-sm text-gray-900">${model.Model}</div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="text-sm text-gray-900">${model.Name_sensor_type || 'N/A'}</div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <button onclick="editSensorModel(${model.Id_sensor_model}, '${model.Brand}', '${model.Model}', ${model.Id_sensor_type})" class="text-purple-600 hover:text-purple-900 mr-3">Edit</button>
+                        <button onclick="deleteSensorModel(${model.Id_sensor_model}, '${model.Brand} ${model.Model}')" class="text-red-600 hover:text-red-900">Delete</button>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+        } else {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="4" class="px-6 py-4 text-center text-gray-500">
+                        No sensor models found
+                    </td>
+                </tr>
+            `;
+        }
+    } catch (error) {
+        console.error('Error loading sensor models:', error);
+        showErrorNotification('Error loading sensor models', 'Load Failed');
+    }
+}
+
+async function showAddSensorModelModal() {
+    const modal = document.getElementById('addSensorModelModal');
+    
+    try {
+        const response = await fetch('api/sensors.php?sensor_types=1');
+        const sensorTypes = await response.json();
+        
+        const select = document.getElementById('sensorModelTypeId');
+        select.innerHTML = '<option value="">Select a sensor type...</option>';
+        
+        if (Array.isArray(sensorTypes)) {
+            sensorTypes.forEach(type => {
+                const option = document.createElement('option');
+                option.value = type.Id_sensor_type;
+                option.textContent = type.Name_sensor_type;
+                select.appendChild(option);
+            });
+        }
+    } catch (error) {
+        console.error('Error loading sensor types:', error);
+    }
+    
+    modal.classList.remove('hidden');
+}
+
+function closeAddSensorModelModal() {
+    const modal = document.getElementById('addSensorModelModal');
+    modal.classList.add('hidden');
+    document.getElementById('sensorModelBrand').value = '';
+    document.getElementById('sensorModelModel').value = '';
+    document.getElementById('sensorModelTypeId').value = '';
+}
+
+async function editSensorModel(id, brand, model, typeId) {
+    try {
+        const response = await fetch('api/sensors.php?sensor_types=1');
+        const sensorTypes = await response.json();
+        
+        const select = document.getElementById('editSensorModelTypeId');
+        select.innerHTML = '<option value="">Select a sensor type...</option>';
+        
+        if (Array.isArray(sensorTypes)) {
+            sensorTypes.forEach(type => {
+                const option = document.createElement('option');
+                option.value = type.Id_sensor_type;
+                option.textContent = type.Name_sensor_type;
+                if (type.Id_sensor_type == typeId) {
+                    option.selected = true;
+                }
+                select.appendChild(option);
+            });
+        }
+        
+        document.getElementById('editSensorModelId').value = id;
+        document.getElementById('editSensorModelBrand').value = brand;
+        document.getElementById('editSensorModelModel').value = model;
+        
+        document.getElementById('editSensorModelModal').classList.remove('hidden');
+    } catch (error) {
+        console.error('Error loading sensor model details:', error);
+        showErrorNotification('Error loading sensor model details', 'Load Failed');
+    }
+}
+
+function closeEditSensorModelModal() {
+    const modal = document.getElementById('editSensorModelModal');
+    modal.classList.add('hidden');
+    document.getElementById('editSensorModelId').value = '';
+    document.getElementById('editSensorModelBrand').value = '';
+    document.getElementById('editSensorModelModel').value = '';
+    document.getElementById('editSensorModelTypeId').value = '';
+}
+
+async function deleteSensorModel(id, name) {
+    const confirmed = await showConfirmDialog(`Are you sure you want to delete sensor model "${name}"?`, null, 'Delete Sensor Model');
+    if (!confirmed) return;
+    
+    try {
+        const response = await fetch(`api/sensors.php?type=sensor_model&id=${id}`, {
+            method: 'DELETE'
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            showSuccessNotification('Sensor model deleted successfully', 'Delete Success');
+            await loadSensorModels();
+        } else {
+            showErrorNotification('Error deleting sensor model: ' + result.message, 'Delete Failed');
+        }
+    } catch (error) {
+        console.error('Error deleting sensor model:', error);
+        showErrorNotification('Error deleting sensor model', 'Network Error');
+    }
+}
+
+async function handleAddSensorModelSubmit(event) {
+    if (event) {
+        event.preventDefault();
+        event.stopPropagation();
+    }
+    
+    const submitButton = document.querySelector('#addSensorModelModal button[onclick*="handleAddSensorModelSubmit"]');
+    const originalText = submitButton.textContent;
+    submitButton.disabled = true;
+    submitButton.textContent = 'Adding...';
+    
+    try {
+        const formData = {
+            type: 'sensor_model',
+            brand: document.getElementById('sensorModelBrand').value.trim(),
+            model: document.getElementById('sensorModelModel').value.trim(),
+            sensor_type_id: parseInt(document.getElementById('sensorModelTypeId').value)
+        };
+        
+        if (!formData.brand) {
+            throw new Error('Brand is required');
+        }
+        
+        if (!formData.model) {
+            throw new Error('Model is required');
+        }
+        
+        if (!formData.sensor_type_id || isNaN(formData.sensor_type_id)) {
+            throw new Error('Please select a sensor type');
+        }
+        
+        const response = await fetch('api/sensors.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(formData)
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            closeAddSensorModelModal();
+            showSuccessNotification('Sensor model created successfully', 'Create Success');
+            await loadSensorModels();
+        } else {
+            throw new Error(result.message || 'Unknown error occurred');
+        }
+    } catch (error) {
+        console.error('Error creating sensor model:', error);
+        showErrorNotification('Error creating sensor model: ' + error.message, 'Create Failed');
+    } finally {
+        submitButton.disabled = false;
+        submitButton.textContent = originalText;
+    }
+}
+
+async function handleEditSensorModelSubmit(event) {
+    if (event) {
+        event.preventDefault();
+        event.stopPropagation();
+    }
+    
+    const submitButton = document.querySelector('#editSensorModelModal button[onclick*="handleEditSensorModelSubmit"]');
+    const originalText = submitButton.textContent;
+    submitButton.disabled = true;
+    submitButton.textContent = 'Updating...';
+    
+    try {
+        const formData = {
+            type: 'sensor_model',
+            id: parseInt(document.getElementById('editSensorModelId').value),
+            brand: document.getElementById('editSensorModelBrand').value.trim(),
+            model: document.getElementById('editSensorModelModel').value.trim(),
+            sensor_type_id: parseInt(document.getElementById('editSensorModelTypeId').value)
+        };
+        
+        if (!formData.brand) {
+            throw new Error('Brand is required');
+        }
+        
+        if (!formData.model) {
+            throw new Error('Model is required');
+        }
+        
+        if (!formData.sensor_type_id || isNaN(formData.sensor_type_id)) {
+            throw new Error('Please select a sensor type');
+        }
+        
+        const response = await fetch('api/sensors.php', {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(formData)
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            closeEditSensorModelModal();
+            showSuccessNotification('Sensor model updated successfully', 'Update Success');
+            await loadSensorModels();
+        } else {
+            throw new Error(result.message || 'Unknown error occurred');
+        }
+    } catch (error) {
+        console.error('Error updating sensor model:', error);
+        showErrorNotification('Error updating sensor model: ' + error.message, 'Update Failed');
     } finally {
         submitButton.disabled = false;
         submitButton.textContent = originalText;

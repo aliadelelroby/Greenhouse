@@ -60,6 +60,27 @@ function handleGetRequest($sensorRepository, $greenhouseRepository, $responseSer
         return;
     }
     
+    // Check if companies list is requested
+    if (isset($_GET['companies'])) {
+        $companies = getCompanies($responseService);
+        $responseService->jsonResponse($companies);
+        return;
+    }
+    
+    // Check if sensor models list is requested
+    if (isset($_GET['sensor_models'])) {
+        $sensorModels = getSensorModels($responseService);
+        $responseService->jsonResponse($sensorModels);
+        return;
+    }
+    
+    // Check if sensor types list is requested
+    if (isset($_GET['sensor_types'])) {
+        $sensorTypes = getSensorTypes($responseService);
+        $responseService->jsonResponse($sensorTypes);
+        return;
+    }
+    
     // Check if greenhouse statistics are requested
     if (isset($_GET['greenhouse_stats'])) {
         $stats = $greenhouseRepository->getStatistics();
@@ -139,6 +160,20 @@ function handlePostRequest($sensorRepository, $greenhouseRepository, $responseSe
                 $responseService->jsonResponse(['success' => true, 'id' => $greenhouseId, 'message' => 'Greenhouse created successfully']);
                 break;
                 
+            case 'sensor_model':
+                $brand = $input['brand'] ?? '';
+                $model = $input['model'] ?? '';
+                $sensorTypeId = $input['sensor_type_id'] ?? 0;
+                
+                if (empty($brand) || empty($model) || empty($sensorTypeId)) {
+                    $responseService->errorResponse('Brand, model, and sensor type are required', 400);
+                    return;
+                }
+                
+                $sensorModelId = createSensorModel($brand, $model, (int)$sensorTypeId, $responseService);
+                $responseService->jsonResponse(['success' => true, 'id' => $sensorModelId, 'message' => 'Sensor model created successfully']);
+                break;
+                
             default:
                 $responseService->errorResponse('Invalid type parameter', 400);
         }
@@ -200,6 +235,19 @@ function handlePutRequest($sensorRepository, $greenhouseRepository, $responseSer
                 $success = $greenhouseRepository->update((int)$id, $name, (int)$companyId, $xMax, $yMax);
                 break;
                 
+            case 'sensor_model':
+                $brand = $input['brand'] ?? '';
+                $model = $input['model'] ?? '';
+                $sensorTypeId = $input['sensor_type_id'] ?? 0;
+                
+                if (empty($brand) || empty($model) || empty($sensorTypeId)) {
+                    $responseService->errorResponse('Brand, model, and sensor type are required', 400);
+                    return;
+                }
+                
+                $success = updateSensorModel((int)$id, $brand, $model, (int)$sensorTypeId, $responseService);
+                break;
+                
             default:
                 $responseService->errorResponse('Invalid type parameter', 400);
                 return;
@@ -242,6 +290,10 @@ function handleDeleteRequest($sensorRepository, $greenhouseRepository, $response
                 $success = $greenhouseRepository->delete((int)$id);
                 break;
                 
+            case 'sensor_model':
+                $success = deleteSensorModel((int)$id, $responseService);
+                break;
+                
             default:
                 $responseService->errorResponse('Invalid type parameter', 400);
                 return;
@@ -254,6 +306,213 @@ function handleDeleteRequest($sensorRepository, $greenhouseRepository, $response
         }
 } catch (Exception $e) {
         $responseService->errorResponse('Failed to delete: ' . $e->getMessage(), 500);
+    }
+}
+
+/**
+ * Get all companies from the database
+ */
+function getCompanies($responseService): array
+{
+    try {
+        $database = Database::getInstance();
+        $connection = $database->getConnection();
+        
+        $sql = "SELECT Id_company, Name_company, Description, Enabled 
+                FROM company 
+                WHERE Enabled = 1
+                ORDER BY Name_company";
+        
+        $result = $connection->query($sql);
+        if (!$result) {
+            throw new RuntimeException("Failed to execute companies query: " . $connection->error);
+        }
+        
+        $companies = [];
+        while ($row = $result->fetch_assoc()) {
+            $companies[] = [
+                'Id_company' => (int)$row['Id_company'],
+                'Name_company' => $row['Name_company'],
+                'Description' => $row['Description'],
+                'Enabled' => (int)$row['Enabled']
+            ];
+        }
+        
+        return $companies;
+    } catch (Exception $e) {
+        error_log("Error fetching companies: " . $e->getMessage());
+        return [];
+    }
+}
+
+/**
+ * Get all sensor models from the database  
+ */
+function getSensorModels($responseService): array
+{
+    try {
+        $database = Database::getInstance();
+        $connection = $database->getConnection();
+        
+        $sql = "SELECT sm.Id_sensor_model, sm.Brand, sm.Model, sm.Id_sensor_type, st.Name_sensor_type
+                FROM sensor_model sm
+                LEFT JOIN sensor_type st ON sm.Id_sensor_type = st.Id_sensor_type
+                ORDER BY sm.Brand, sm.Model";
+        
+        $result = $connection->query($sql);
+        if (!$result) {
+            throw new RuntimeException("Failed to execute sensor models query: " . $connection->error);
+        }
+        
+        $sensorModels = [];
+        while ($row = $result->fetch_assoc()) {
+            $sensorModels[] = [
+                'Id_sensor_model' => (int)$row['Id_sensor_model'],
+                'Name_sensor_model' => $row['Brand'] . ' ' . $row['Model'],
+                'Brand' => $row['Brand'],
+                'Model' => $row['Model'],
+                'Id_sensor_type' => (int)$row['Id_sensor_type'],
+                'Name_sensor_type' => $row['Name_sensor_type']
+            ];
+        }
+        
+        return $sensorModels;
+    } catch (Exception $e) {
+        error_log("Error fetching sensor models: " . $e->getMessage());
+        return [];
+    }
+}
+
+/**
+ * Get all sensor types from the database
+ */
+function getSensorTypes($responseService): array
+{
+    try {
+        $database = Database::getInstance();
+        $connection = $database->getConnection();
+        
+        $sql = "SELECT Id_sensor_type, Name_sensor_type, Description_sensor_type 
+                FROM sensor_type 
+                ORDER BY Name_sensor_type";
+        
+        $result = $connection->query($sql);
+        if (!$result) {
+            throw new RuntimeException("Failed to execute sensor types query: " . $connection->error);
+        }
+        
+        $sensorTypes = [];
+        while ($row = $result->fetch_assoc()) {
+            $sensorTypes[] = [
+                'Id_sensor_type' => (int)$row['Id_sensor_type'],
+                'Name_sensor_type' => $row['Name_sensor_type'],
+                'Description_sensor_type' => $row['Description_sensor_type']
+            ];
+        }
+        
+        return $sensorTypes;
+    } catch (Exception $e) {
+        error_log("Error fetching sensor types: " . $e->getMessage());
+        return [];
+    }
+}
+
+/**
+ * Create a new sensor model
+ */
+function createSensorModel(string $brand, string $model, int $sensorTypeId, $responseService): int
+{
+    try {
+        $database = Database::getInstance();
+        $connection = $database->getConnection();
+        
+        $sql = "INSERT INTO sensor_model (Brand, Model, Id_sensor_type) VALUES (?, ?, ?)";
+        
+        $stmt = $connection->prepare($sql);
+        if (!$stmt) {
+            throw new RuntimeException("Failed to prepare sensor model insert: " . $connection->error);
+        }
+        
+        $stmt->bind_param("ssi", $brand, $model, $sensorTypeId);
+        
+        if (!$stmt->execute()) {
+            throw new RuntimeException("Failed to create sensor model: " . $stmt->error);
+        }
+        
+        $sensorModelId = $connection->insert_id;
+        $stmt->close();
+        
+        return $sensorModelId;
+    } catch (Exception $e) {
+        error_log("Error creating sensor model: " . $e->getMessage());
+        throw $e;
+    }
+}
+
+/**
+ * Update a sensor model
+ */
+function updateSensorModel(int $sensorModelId, string $brand, string $model, int $sensorTypeId, $responseService): bool
+{
+    try {
+        $database = Database::getInstance();
+        $connection = $database->getConnection();
+        
+        $sql = "UPDATE sensor_model SET Brand = ?, Model = ?, Id_sensor_type = ? WHERE Id_sensor_model = ?";
+        
+        $stmt = $connection->prepare($sql);
+        if (!$stmt) {
+            throw new RuntimeException("Failed to prepare sensor model update: " . $connection->error);
+        }
+        
+        $stmt->bind_param("ssii", $brand, $model, $sensorTypeId, $sensorModelId);
+        $result = $stmt->execute();
+        $stmt->close();
+        
+        return $result;
+    } catch (Exception $e) {
+        error_log("Error updating sensor model: " . $e->getMessage());
+        throw $e;
+    }
+}
+
+/**
+ * Delete a sensor model
+ */
+function deleteSensorModel(int $sensorModelId, $responseService): bool
+{
+    try {
+        $database = Database::getInstance();
+        $connection = $database->getConnection();
+        
+        // First check if sensor model is being used by any sensors
+        $checkSql = "SELECT COUNT(*) as sensor_count FROM sensor WHERE Id_sensor_model = ?";
+        $checkStmt = $connection->prepare($checkSql);
+        $checkStmt->bind_param("i", $sensorModelId);
+        $checkStmt->execute();
+        $result = $checkStmt->get_result();
+        $row = $result->fetch_assoc();
+        $checkStmt->close();
+        
+        if ($row['sensor_count'] > 0) {
+            throw new RuntimeException("Cannot delete sensor model: it is being used by " . $row['sensor_count'] . " sensor(s)");
+        }
+        
+        $sql = "DELETE FROM sensor_model WHERE Id_sensor_model = ?";
+        
+        $stmt = $connection->prepare($sql);
+        if (!$stmt) {
+            throw new RuntimeException("Failed to prepare sensor model delete: " . $connection->error);
+        }
+        
+        $stmt->bind_param("i", $sensorModelId);
+        $result = $stmt->execute();
+        $stmt->close();
+        
+        return $result;
+    } catch (Exception $e) {
+        error_log("Error deleting sensor model: " . $e->getMessage());
+        throw $e;
     }
 }
 ?> 
